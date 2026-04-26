@@ -35,6 +35,9 @@
         <fn-validate_path_for_deletion PURPOSE="Check path against protected patterns, SIP, traversal attempts" />
         <fn-get_path_size_kb PURPOSE="Get path size in KB" />
       </annotations>
+      <known-issues>
+        <issue-1>safe_remove returns generic rc=1 for both "protected" and "permission denied". Needs MOLE_ERR_PERMISSION_DENIED=13 exit code. See VF-004.</issue-1>
+      </known-issues>
     </M-FILE-OPS>
 
     <M-UI NAME="UI" TYPE="UTILITY" STATUS="implemented">
@@ -86,16 +89,16 @@
     </M-AI-CONFIG>
 
     <M-AI-CLIENT NAME="AI Client" TYPE="INTEGRATION" STATUS="implemented">
-      <purpose>OpenAI-compatible HTTP client with standard and SSE streaming modes</purpose>
+      <purpose>OpenAI-compatible HTTP client with standard and SSE streaming modes. Handles reasoning models via reasoning_content fallback. _json_escape_string uses python3 json.dumps() for full control char escaping.</purpose>
       <path>lib/ai/client.sh</path>
       <depends>M-AI-CONFIG</depends>
       <verification-ref>V-M-AI-CLIENT</verification-ref>
       <annotations>
-        <fn-ai_client_chat PURPOSE="Standard chat completion request" />
-        <fn-ai_client_stream_chat PURPOSE="SSE streaming chat completion" />
+        <fn-ai_client_chat PURPOSE="Standard chat completion. Falls back to reasoning_content if content empty." />
+        <fn-ai_client_stream_chat PURPOSE="SSE streaming chat completion. Outputs both reasoning_content and content to stdout." />
         <fn-ai_client_test PURPOSE="Test endpoint connectivity" />
         <fn-_build_messages_json PURPOSE="Build JSON messages array from system + user prompts" />
-        <fn-_json_escape_string PURPOSE="Escape string for JSON embedding" />
+        <fn-_json_escape_string PURPOSE="Escape string for JSON via python3 json.dumps() — handles all control chars" />
       </annotations>
     </M-AI-CLIENT>
 
@@ -131,13 +134,19 @@
     </M-AI-PROMPT>
 
     <M-AI-ADVISOR NAME="AI Advisor CLI" TYPE="ENTRY_POINT" STATUS="implemented">
-      <purpose>Main advisor command: collection, API call with retry, report rendering, interactive menu, confirmation, execution. Supports --auto-safe flag.</purpose>
+      <purpose>Main advisor command: pipeline UI (Collect→Analyze→Report→Select→Execute), streaming with progress, report rendering, interactive menu, confirmation, execution. Supports --auto-safe, --analyze, --dry-run, --no-stream.</purpose>
       <path>bin/advisor.sh</path>
       <depends>M-AI-CONFIG, M-AI-CLIENT, M-AI-COLLECTOR, M-AI-COLLECTOR-EXT, M-AI-PROMPT, M-AI-RENDERER, M-AI-EXECUTOR, M-FILE-OPS, M-UI, M-LOG</depends>
       <verification-ref>V-M-AI-ADVISOR</verification-ref>
       <annotations>
         <fn-main PURPOSE="Entry point: parse args, collect data, call AI, render report, interactive select, confirm, execute" />
         <fn-_call_ai_with_retry PURPOSE="Call AI with up to 2 retries on failure" />
+        <fn-_show_pipeline PURPOSE="Render pipeline progress bar to stderr" />
+        <fn-_pipeline_detail PURPOSE="Update detail line below pipeline bar" />
+        <fn-_pipeline_advance PURPOSE="Advance pipeline to next stage" />
+        <fn-_collect_with_progress PURPOSE="Run collector with spinner showing section progress N/12" />
+        <fn-_stream_ai_with_progress PURPOSE="Background streaming via bash -c with temp files" />
+        <fn-_strip_reasoning PURPOSE="Filter reasoning text, keep markdown content" />
         <fn-_step PURPOSE="Show numbered progress step" />
         <fn-_step_ok PURPOSE="Show completed step with green checkmark" />
         <fn-_step_fail PURPOSE="Show failed step with red icon" />
@@ -174,6 +183,9 @@
         <fn-_expand_glob_paths PURPOSE="Expand glob patterns to actual filesystem paths" />
         <fn-_execute_plan PURPOSE="Execute selected items via safe_remove with size tracking" />
       </annotations>
+      <known-issues>
+        <issue-1>Shows "Skipped (protected)" for permission denied paths. Needs MOLE_ERR_PERMISSION_DENIED=13. See VF-004.</issue-1>
+      </known-issues>
     </M-AI-EXECUTOR>
 
     <M-AI-COLLECTOR-EXT NAME="Extended Collector" TYPE="INTEGRATION" STATUS="implemented">
@@ -190,6 +202,8 @@
     </M-AI-COLLECTOR-EXT>
 
     <!-- ==================== CROSS-LINKS ==================== -->
+
+    <PR-795 URL="https://github.com/tw93/Mole/pull/795" STATUS="open" DATE="2026-04-26" />
 
     <CrossLink from="M-AI-ADVISOR" to="M-AI-CONFIG" relation="reads endpoint, model, api_key" />
     <CrossLink from="M-AI-ADVISOR" to="M-AI-CLIENT" relation="sends prompt + data, receives response" />

@@ -1,10 +1,31 @@
-<DevelopmentPlan VERSION="1.1.0">
+<DevelopmentPlan VERSION="1.2.0">
   <ArchitectureNotes>
     <objective>Provide a safe, transparent AI-powered system advisor that collects real system data, sends it to a configurable LLM, and executes only user-confirmed deletions through mole's existing safe_remove pipeline.</objective>
     <non-goal>The advisor does not replace existing mole commands. It augments them with LLM-driven analysis for users who want guided cleanup recommendations.</non-goal>
     <risk-1>LLM hallucination — model may suggest non-existent paths or dangerous operations. All paths validated before deletion.</risk-1>
     <risk-2>Collector accuracy — du on SIP-protected dirs returns 0 or hangs. Timeout guards and _fast_du_sk_bg mitigate this.</risk-2>
+    <risk-3>Reasoning models (e.g. glm-5.1) output analysis in reasoning_content, not content. Client must parse both fields. max_tokens=16384 required to avoid truncation.</risk-3>
+    <risk-4>Permission denied during rm -rf on cache files (e.g. npm _cacache) — safe_remove returns generic rc=1, executor shows misleading "Skipped (protected)". Needs MOLE_ERR_PERMISSION_DENIED=13.</risk-4>
   </ArchitectureNotes>
+
+  <PR NUMBER="795" URL="https://github.com/tw93/Mole/pull/795" STATUS="open" DATE="2026-04-26">
+    <summary>AI-powered system advisor — 22 files, +4852 lines, 91 bats tests. Submitted to upstream tw93/mole.</summary>
+    <fork>xronocode/Mole</fork>
+    <branch>feat/ai-advisor</branch>
+  </PR>
+
+  <KnownIssues>
+    <issue-1 MODULE="M-AI-EXECUTOR" SEVERITY="medium" DATE="2026-04-26">
+      <title>executor shows "Skipped (protected)" for permission denied paths</title>
+      <description>_execute_plan in executor.sh shows "Skipped (protected)" when safe_remove returns non-zero for ANY reason. When rm -rf encounters permission denied on individual files (e.g. npm cache _cacache content-v2/index-v5), the path is not protected but deletion fails. The error message is misleading.</description>
+      <root-cause>safe_remove (file_ops.sh) returns rc=1 for both "protected path" and "rm -rf failed". No MOLE_ERR_PERMISSION_DENIED exit code exists. executor.sh _execute_plan treats all non-zero returns as "protected".</root-cause>
+      <fix-plan>
+        <step-1>Add MOLE_ERR_PERMISSION_DENIED=13 to lib/core/file_ops.sh error codes</step-1>
+        <step-2>Update safe_remove to return MOLE_ERR_PERMISSION_DENIED when rm -rf stderr contains "Permission denied"</step-2>
+        <step-3>Update executor.sh _execute_plan to check specific exit codes and show correct messages: "Skipped (protected)" vs "Skipped (permission denied)" vs "Skipped (error)"</step-3>
+      </fix-plan>
+    </issue-1>
+  </KnownIssues>
 
   <Modules>
 
@@ -96,7 +117,7 @@
 
     <M-AI-CLIENT NAME="AI Client" TYPE="INTEGRATION" LAYER="1" ORDER="2" STATUS="implemented">
       <contract>
-        <purpose>OpenAI-compatible HTTP client for chat completions API. Supports both standard and SSE streaming modes via curl + python3.</purpose>
+        <purpose>OpenAI-compatible HTTP client for chat completions API. Supports both standard and SSE streaming modes via curl + python3. Handles reasoning models that output analysis in reasoning_content instead of content.</purpose>
         <inputs>
           <param name="system_prompt" type="string" />
           <param name="user_message" type="string" />
@@ -107,19 +128,26 @@
         <errors>
           <error code="HTTP_401" description="Invalid API key" />
           <error code="HTTP_404" description="Model not found at endpoint" />
+          <error code="HTTP_400" description="JSON parse error — likely unescaped control chars in prompt data" />
           <error code="timeout" description="Request exceeded configured timeout" />
         </errors>
       </contract>
       <interface>
-        <fn-ai_client_chat PURPOSE="Standard (non-streaming) chat completion" />
-        <fn-ai_client_stream_chat PURPOSE="SSE streaming chat completion" />
+        <fn-ai_client_chat PURPOSE="Standard (non-streaming) chat completion. Falls back to reasoning_content if content empty." />
+        <fn-ai_client_stream_chat PURPOSE="SSE streaming chat completion. Outputs both reasoning_content and content chunks to stdout." />
         <fn-ai_client_test PURPOSE="Test endpoint connectivity" />
+        <fn-_build_messages_json PURPOSE="Build JSON messages array" />
+        <fn-_json_escape_string PURPOSE="Escape string for JSON via python3 json.dumps() — handles all control characters" />
       </interface>
       <depends>M-AI-CONFIG</depends>
       <target>
         <source>lib/ai/client.sh</source>
       </target>
       <verification-ref>V-M-AI-CLIENT</verification-ref>
+      <notes>
+        <note-1>_json_escape_string uses python3 json.dumps() with bash-native fallback for \uXXXX. Required because collector data contains ANSI escape sequences and control chars.</note-1>
+        <note-2>max_tokens defaults to 16384 (not 4096) to accommodate reasoning models that spend tokens on analysis before generating content.</note-2>
+      </notes>
     </M-AI-CLIENT>
 
     <M-AI-COLLECTOR NAME="System Collector" TYPE="INTEGRATION" LAYER="1" ORDER="3" STATUS="implemented">
@@ -245,13 +273,14 @@
 
     <M-AI-ADVISOR NAME="AI Advisor CLI" TYPE="ENTRY_POINT" LAYER="2" ORDER="2" STATUS="implemented">
       <contract>
-        <purpose>Main advisor command. Orchestrates: config check, data collection (subprocess), API call with retry, report rendering, interactive [x]/[ ] menu, confirmation, execution via safe_remove. Supports --auto-safe flag.</purpose>
+        <purpose>Main advisor command. Orchestrates: config check, data collection (subprocess), API call with retry, report rendering, interactive [x]/[ ] menu, confirmation, execution via safe_remove. Supports --auto-safe, --analyze, --dry-run, --no-stream flags. Visual pipeline UI: Collect → Analyze → Report → Select → Execute.</purpose>
         <inputs>
           <param name="--setup" type="flag" description="Run interactive config wizard" />
           <param name="--show-config" type="flag" description="Display current AI configuration" />
           <param name="--no-stream" type="flag" description="Use non-streaming API call" />
           <param name="--dry-run" type="flag" description="Collect data only, no API call" />
           <param name="--auto-safe" type="flag" description="Auto-select SAFE items, skip menu" />
+          <param name="--analyze" type="flag" description="Collect and analyze without execution prompt" />
         </inputs>
         <outputs>
           <param name="exit_code" type="int" description="0 success, 1 error, 130 interrupt" />
@@ -260,6 +289,12 @@
       <interface>
         <fn-main PURPOSE="Entry point: parse args, orchestrate flow" />
         <fn-_call_ai_with_retry PURPOSE="Call AI with up to 2 retries on failure" />
+        <fn-_show_pipeline PURPOSE="Render pipeline progress bar to stderr" />
+        <fn-_pipeline_detail PURPOSE="Update detail line below pipeline bar" />
+        <fn-_pipeline_advance PURPOSE="Advance pipeline to next stage" />
+        <fn-_collect_with_progress PURPOSE="Run collector with spinner showing section progress" />
+        <fn-_stream_ai_with_progress PURPOSE="Background streaming via bash -c with temp files" />
+        <fn-_strip_reasoning PURPOSE="Filter reasoning text, keep markdown content" />
         <fn-_step PURPOSE="Show numbered progress step" />
         <fn-_step_ok PURPOSE="Show completed step" />
         <fn-_step_fail PURPOSE="Show failed step" />
@@ -275,6 +310,9 @@
         <note-3>Glob paths (ending in /*) expand to directory contents and delete items inside, not the directory itself.</note-3>
         <note-4>--auto-safe auto-selects only SAFE items and skips interactive menu.</note-4>
         <note-5>API calls retry up to 2 times on failure with 2-second delay.</note-5>
+        <note-6>Pipeline UI writes to stderr. Collector data goes to stdout (captured by $()). Spinner shows N/12 section progress.</note-6>
+        <note-7>_stream_ai_with_progress uses bash -c with temp files for prompt data — subshell cannot inherit sourced functions.</note-7>
+        <note-8>_strip_reasoning filters reasoning model output to extract clean markdown response.</note-8>
       </notes>
     </M-AI-ADVISOR>
 
@@ -284,15 +322,16 @@
     <DF-ADVISE NAME="Full Advisor Flow" TRIGGER="mo advisor">
       <step-1>User runs `mo advisor`</step-1>
       <step-2>advisor.sh checks config (M-AI-CONFIG), prompts setup if missing</step-2>
-      <step-3>collector_run_all (M-AI-COLLECTOR) runs in subprocess, auto-sources M-AI-COLLECTOR-EXT for Docker/Homebrew/Xcode</step-3>
-      <step-4>_call_ai_with_retry sends prompt+data via M-AI-CLIENT (up to 2 retries)</step-4>
-      <step-5>Response captured. Markdown report extracted and rendered via M-AI-RENDERER _render_report</step-5>
-      <step-6>JSON plan block extracted via M-AI-RENDERER _extract_json_plan, parsed into arrays</step-6>
-      <step-7>M-AI-RENDERER _interactive_select shows menu with F key risk filter and scrolling</step-7>
-      <step-8>M-AI-RENDERER _show_confirmation lists selected paths, requires typed "yes"</step-8>
-      <step-9>M-AI-EXECUTOR _execute_plan iterates paths, expands globs, calls safe_remove (M-FILE-OPS)</step-9>
-      <step-10>Summary displayed: items removed, space recovered, items skipped</step-10>
-      <evidence>Step progress output, report rendering, menu interaction, execution log</evidence>
+      <step-3>Pipeline UI renders to stderr: Collect → Analyze → Report → Select → Execute</step-3>
+      <step-4>_collect_with_progress runs collector_run_all (M-AI-COLLECTOR) in subprocess with spinner showing N/12 sections. Auto-sources M-AI-COLLECTOR-EXT for Docker/Homebrew/Xcode</step-4>
+      <step-5>_stream_ai_with_progress sends prompt+data via M-AI-CLIENT in background bash -c with temp files. Both reasoning_content and content captured.</step-5>
+      <step-6>Response captured. _strip_reasoning filters reasoning text. Markdown report rendered via M-AI-RENDERER _render_report</step-6>
+      <step-7>JSON plan block extracted via M-AI-RENDERER _extract_json_plan, parsed into arrays</step-7>
+      <step-8>M-AI-RENDERER _interactive_select shows menu with F key risk filter and scrolling</step-8>
+      <step-9>M-AI-RENDERER _show_confirmation lists selected paths, requires typed "yes"</step-9>
+      <step-10>M-AI-EXECUTOR _execute_plan iterates paths, expands globs, calls safe_remove (M-FILE-OPS)</step-10>
+      <step-11>Summary displayed: items removed, space recovered, items skipped (with reason)</step-11>
+      <evidence>Pipeline bar on stderr, step progress, report rendering, menu interaction, execution log</evidence>
     </DF-ADVISE>
 
     <DF-CONFIG NAME="Config Setup Flow" TRIGGER="mo advisor --setup">

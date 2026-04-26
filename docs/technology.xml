@@ -5,11 +5,10 @@
 
   <Dependencies>
     <dep name="curl" version="system" purpose="HTTP client for LLM API calls (SSE streaming + standard)" />
-    <dep name="python3" version="system" purpose="JSON parsing (jq not guaranteed on macOS), response extraction" />
+    <dep name="python3" version="system" purpose="JSON parsing (jq not guaranteed on macOS), response extraction, json.dumps() for control char escaping in _json_escape_string" />
     <dep name="du/df" version="system" purpose="Disk usage measurement with timeout guards" />
     <dep name="sysctl/vm_stat" version="system" purpose="Memory, CPU, uptime data collection" />
     <dep name="find" version="system" purpose="File scanning for build artifacts and cleanable items" />
-    <dep name="perl" version="system" purpose="Not used — previously attempted for du timeouts, removed" />
   </Dependencies>
 
   <VersionConstraints>
@@ -46,12 +45,24 @@
 
   <Observability>
     <logger>echo/printf to stderr with color codes</logger>
-    <log-prefix>No structured log format. Step-based progress: _step/_step_ok/_step_fail</log-prefix>
-    <error-channels>stderr for errors and warnings, stdout for data and progress</error-channels>
+    <log-prefix>No structured log format. Pipeline UI stages: Collect → Analyze → Report → Select → Execute. Step-based progress via _step/_step_ok/_step_fail.</log-prefix>
+    <error-channels>stderr for errors, warnings, and pipeline UI. stdout for collector data and streaming response.</error-channels>
     <redaction>API key never logged. MO_DEBUG=1 enables verbose output.</redaction>
+    <report-cache>~/.config/mole/advisor/last_report.md, last_plan.json, last_timestamp</report-cache>
   </Observability>
 
   <DeliveryShape>
-    <shape>Single-user CLI tool. No daemon. No database. Config in ~/.config/mole/ai.conf. Temp files in /tmp/.</shape>
+    <shape>Single-user CLI tool. No daemon. No database. Config in ~/.config/mole/ai.conf. Report cache in ~/.config/mole/advisor/. Temp files in /tmp/.</shape>
   </DeliveryShape>
+
+  <ReasoningModelNotes>
+    <tested-model>glm-5.1 (reasoning model via OpenAI-compatible endpoint)</tested-model>
+    <behavior>Outputs analysis in delta.reasoning_content SSE field. Final response in delta.content. May spend most tokens on reasoning before generating content.</behavior>
+    <mitigations>
+      <mitigation-1>max_tokens=16384 (not 4096) to ensure content generation completes</mitigation-1>
+      <mitigation-2>client.sh parses both reasoning_content and content fields</mitigation-1>
+      <mitigation-3>_strip_reasoning filters reasoning text from response before rendering</mitigation-3>
+      <mitigation-4>timeout=300s for slow reasoning models</mitigation-4>
+    </mitigations>
+  </ReasoningModelNotes>
 </TechnologyStack>

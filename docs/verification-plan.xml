@@ -32,13 +32,28 @@
 
     <VF-003 NAME="Collector Accuracy" USE_CASES="UC-001" PRIORITY="high">
       <scenario>Collector scans user dirs, system dirs, and large containers with timeout guards.</scenario>
-      <expected-outcome>All 9+ sections output. Sizes are non-zero for existing directories. Timeouts return 0 gracefully.</expected-outcome>
+      <expected-outcome>All 12 sections output. Sizes are non-zero for existing directories. Timeouts return 0 gracefully.</expected-outcome>
       <required-signals>
-        <signal-1>=== SECTION === headers present for all sections</signal-1>
+        <signal-1>=== SECTION === headers present for all 12 sections including DOCKER, HOMEBREW, XCODE</signal-1>
         <signal-2>_fast_du_sk_bg returns 0 on timeout, does not hang</signal-2>
         <signal-3>Docker, Applications, Homebrew sizes reported when present</signal-3>
       </required-signals>
     </VF-003>
+
+    <VF-004 NAME="Permission Denied Distinction" USE_CASES="UC-001" PRIORITY="high" STATUS="known-bug">
+      <scenario>safe_remove fails on a non-protected path due to permission denied (e.g. npm cache _cacache). Executor must show "Skipped (permission denied)" not "Skipped (protected)".</scenario>
+      <expected-outcome>Exit code distinguishes protected vs permission denied vs other errors. Executor shows accurate message per failure type.</expected-outcome>
+      <required-signals>
+        <signal-1>MOLE_ERR_PERMISSION_DENIED=13 returned by safe_remove when rm -rf stderr contains "Permission denied"</signal-1>
+        <signal-2>executor.sh _execute_plan checks specific exit codes and shows correct label</signal-2>
+        <signal-3>"Skipped (protected)" only shown when path actually matches protection patterns</signal-3>
+      </required-signals>
+      <fix-required>
+        <fix-1>Add MOLE_ERR_PERMISSION_DENIED=13 to lib/core/file_ops.sh</fix-1>
+        <fix-2>Update safe_remove to detect "Permission denied" in rm stderr and return code 13</fix-2>
+        <fix-3>Update executor.sh _execute_plan to map exit codes to correct messages</fix-3>
+      </fix-required>
+    </VF-004>
   </CriticalFlows>
 
   <ModuleVerification>
@@ -68,6 +83,8 @@
         <scenario-1 kind="success">ai_client_chat returns content from mocked 200 response</scenario-1>
         <scenario-2 kind="failure">ai_client_chat returns error on HTTP 401</scenario-2>
         <scenario-3 kind="failure">ai_client_chat returns error on timeout</scenario-3>
+        <scenario-4 kind="success">ai_client_chat falls back to reasoning_content when content is empty</scenario-4>
+        <scenario-5 kind="success">_json_escape_string escapes control characters (0x1B etc) via python3</scenario-5>
       </scenarios>
     </V-M-AI-CLIENT>
 
@@ -130,6 +147,7 @@
         <scenario-1 kind="success">_expand_glob_paths expands directory/* to contained items</scenario-1>
         <scenario-2 kind="success">_execute_plan skips non-existent paths gracefully</scenario-2>
         <scenario-3 kind="success">_execute_plan reports skipped protected items</scenario-3>
+        <scenario-4 kind="bug">_execute_plan shows "Skipped (protected)" for permission denied paths — known bug, see VF-004</scenario-4>
       </scenarios>
     </V-M-AI-EXECUTOR>
 
@@ -142,10 +160,11 @@
         <check-2>bash -n lib/ai/*.sh</check-2>
       </module-checks>
       <scenarios>
-        <scenario-1 kind="success">--help shows usage with --auto-safe flag</scenario-1>
+        <scenario-1 kind="success">--help shows usage with --auto-safe, --analyze, --dry-run, --no-stream flags</scenario-1>
         <scenario-2 kind="success">--auto-safe auto-selects only SAFE items</scenario-2>
         <scenario-3 kind="success">_call_ai_with_retry retries on first failure</scenario-3>
         <scenario-4 kind="failure">_call_ai_with_retry returns error after max retries</scenario-4>
+        <scenario-5 kind="success">_strip_reasoning filters reasoning text and keeps markdown content</scenario-5>
       </scenarios>
     </V-M-AI-ADVISOR>
 
@@ -187,9 +206,14 @@
         <command-2>shellcheck lib/ai/*.sh bin/advisor.sh</command-2>
       </commands>
       <required-evidence>
-        <evidence-1>All bats tests pass</evidence-1>
-        <evidence-2>advisor documented in mole help and README</evidence-2>
+        <evidence-1>All 91 bats tests pass</evidence-1>
+        <evidence-2>advisor documented in mole help</evidence-2>
+        <evidence-3>Full flow tested with real LLM endpoint (glm-5.1 reasoning model)</evidence-3>
+        <evidence-4>Pipeline UI visible: Collect → Analyze → Report → Select → Execute</evidence-4>
       </required-evidence>
+      <known-gaps>
+        <gap-1>VF-004 (permission denied distinction) — executor shows "Skipped (protected)" for permission denied. Needs MOLE_ERR_PERMISSION_DENIED=13.</gap-1>
+      </known-gaps>
     </Gate-Phase-3>
   </PhaseGates>
 

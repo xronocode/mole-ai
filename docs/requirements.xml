@@ -18,14 +18,14 @@
       <Goal>Understand what is consuming disk space and receive actionable cleanup recommendations</Goal>
       <Preconditions>AI endpoint configured via `mo advisor --setup`. Terminal with interactive TTY.</Preconditions>
       <AcceptanceCriteria>
-        1. System data is collected (disk, memory, CPU, caches, containers, build artifacts, Docker, Homebrew)
+        1. System data is collected (disk, memory, CPU, caches, containers, build artifacts, Docker, Homebrew, Xcode)
         2. Data is sent to configured LLM endpoint
         3. LLM returns structured report: disk usage summary, items not recommended for deletion, low-risk items, medium/high-risk items
         4. Report is rendered as formatted terminal output
         5. User sees interactive [x]/[ ] selection menu with all recommended actions
         6. User confirms with typed "yes"
         7. Selected items are deleted via safe_remove pipeline
-        8. Execution summary shows items removed, space recovered, items skipped
+        8. Execution summary shows items removed, space recovered, items skipped (with reason: protected / permission denied / error)
       </AcceptanceCriteria>
       <Priority>high</Priority>
       <RelatedFlows>DF-ADVISE</RelatedFlows>
@@ -82,11 +82,13 @@
     <risk-3>set -e in sourced files (common.sh chain) can kill the advisor subprocess. Must be handled with set +e and subprocess isolation.</risk-3>
     <risk-4>LLM response format may vary between models. JSON extraction must be robust with fallbacks.</risk-4>
     <risk-5>SIP-protected directories (Library/Caches root, Application Support) return partial or zero sizes from du.</risk-5>
+    <risk-6>Reasoning models (e.g. glm-5.1) output analysis in reasoning_content delta field, not content. Client must parse both. max_tokens=16384 needed to avoid truncation before content generation.</risk-6>
+    <risk-7>Permission denied during rm -rf on cache files (npm _cacache) causes misleading "Skipped (protected)" message in executor. safe_remove needs specific exit code for permission denied.</risk-7>
   </Risks>
 
   <OpenQuestions>
-    <question-1>Should the advisor support multiple LLM profiles (e.g. fast-local model vs powerful-cloud model)?</question-1>
-    <question-2>Should the advisor remember previous recommendations and skip already-reviewed items?</question-2>
-    <question-3>Should there be a non-interactive mode (e.g. `mo advisor --auto-safe`) that auto-applies only SAFE items?</question-3>
+    <question-1 RESOLUTION="deferred">Should the advisor support multiple LLM profiles (e.g. fast-local model vs powerful-cloud model)? — Not in v1. Single config via ai.conf is sufficient. Can revisit if users request it.</question-1>
+    <question-2 RESOLUTION="implemented">Should the advisor remember previous recommendations and skip already-reviewed items? — Implemented via report cache: ~/.config/mole/advisor/last_report.md, last_plan.json, last_timestamp. Users can re-run and compare.</question-2>
+    <question-3 RESOLUTION="implemented">Should there be a non-interactive mode (e.g. `mo advisor --auto-safe`) that auto-applies only SAFE items? — Implemented: --auto-safe flag auto-selects SAFE items and skips menu. Also --analyze for report-only.</question-3>
   </OpenQuestions>
 </RequirementsAnalysis>
