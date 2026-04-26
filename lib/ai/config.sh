@@ -1,6 +1,30 @@
 #!/bin/bash
-# Mole - AI Advisor Configuration
-# Manages OpenAI-compatible API settings stored in ~/.config/mole/ai.conf
+# FILE: lib/ai/config.sh
+# VERSION: 1.0.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Manage AI advisor configuration stored in ~/.config/mole/ai.conf
+#   SCOPE: Read/write config values, interactive setup wizard, display config
+#   DEPENDS: lib/core/base.sh
+#   LINKS: M-AI-CONFIG
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   ai_config_get - read config value by key with optional default
+#   ai_config_set - write config value to file
+#   ai_config_setup - interactive setup wizard for endpoint/model/api_key
+#   ai_config_show - display current config (masks API key)
+#   ai_config_is_configured - check if endpoint and model are set
+#   ai_config_get_endpoint - get API endpoint URL
+#   ai_config_get_model - get model name
+#   ai_config_get_api_key - get API key
+#   ai_config_get_max_tokens - get max_tokens parameter
+#   ai_config_get_temperature - get temperature parameter
+#   ai_config_get_timeout - get request timeout in seconds
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   v1.0.0 - Initial module. Config management for AI advisor endpoint/model/api_key.
+# END_CHANGE_SUMMARY
 
 set -euo pipefail
 

@@ -1,10 +1,26 @@
 #!/bin/bash
-# Mole - AI Client
-# OpenAI-compatible chat completions API client (curl-based)
+# FILE: lib/ai/client.sh
+# VERSION: 1.3.0
+# START_MODULE_CONTRACT
+#   PURPOSE: OpenAI-compatible HTTP client for chat completions API (standard + SSE streaming)
+#   SCOPE: Chat completion requests, JSON escaping, response parsing with reasoning_content fallback
+#   DEPENDS: lib/ai/config.sh
+#   LINKS: M-AI-CLIENT
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   ai_client_chat - standard (non-streaming) chat completion with reasoning_content fallback
+#   ai_client_stream_chat - SSE streaming chat completion
+#   ai_client_test - test endpoint connectivity
+#   _build_messages_json - build JSON messages array from system + user prompts
+#   _json_escape_string - escape string for JSON via python3 json.dumps() with bash fallback
+# END_MODULE_MAP
+#
 # START_CHANGE_SUMMARY
-#   LAST_CHANGE: v1.3.0 - Use python3 json.dumps for _json_escape_string to handle
-#   all control characters (ESC, etc.) that broke API JSON parsing. Fallback to
-#   bash-native escape with \uXXXX for chars 0x00-0x1F.
+#   v1.0.0 - Initial module. Basic curl-based OpenAI client.
+#   v1.1.0 - Added reasoning_content fallback for reasoning models.
+#   v1.2.0 - Added SSE streaming support.
+#   v1.3.0 - Rewrote _json_escape_string to use python3 json.dumps() for full control char escaping.
 # END_CHANGE_SUMMARY
 
 set -euo pipefail

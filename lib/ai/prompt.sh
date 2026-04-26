@@ -1,6 +1,20 @@
 #!/bin/bash
-# Mole - AI System Prompt
-# Defines the system prompt, risk taxonomy, and response format for the AI advisor
+# FILE: lib/ai/prompt.sh
+# VERSION: 1.0.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Define system prompt with risk taxonomy and required response format for AI advisor
+#   SCOPE: System prompt text with SAFE/CAUTION/RISKY taxonomy, markdown report + JSON plan format
+#   DEPENDS: none
+#   LINKS: M-AI-PROMPT
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   ai_system_prompt - output system prompt text to stdout
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   v1.0.0 - Initial module. Risk taxonomy, response format with markdown report + JSON plan.
+# END_CHANGE_SUMMARY
 
 set -euo pipefail
 

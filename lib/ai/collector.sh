@@ -1,6 +1,32 @@
 #!/bin/bash
-# Mole - System Data Collector for AI Advisor
-# Gathers system state information as structured text for AI analysis
+# FILE: lib/ai/collector.sh
+# VERSION: 1.0.0
+# START_MODULE_CONTRACT
+#   PURPOSE: Gather system state information as structured text for AI analysis
+#   SCOPE: Disk usage, memory, CPU, uptime, trash, cleanable items, installers, network, battery
+#   DEPENDS: lib/core/base.sh
+#   LINKS: M-AI-COLLECTOR
+# END_MODULE_CONTRACT
+#
+# START_MODULE_MAP
+#   collector_run_all - run all collection sections to stdout, auto-sources collector_ext.sh
+#   _fast_du_sk - get directory size in KB via du -sk
+#   _fast_du_sk_bg - get directory size with background timeout guard
+#   _collect_section - output section header and call collector function
+#   _collect_disk_usage - scan user dirs, system dirs, large containers
+#   _collect_memory_info - memory stats from sysctl + vm_stat
+#   _collect_cpu_info - CPU info and top processes
+#   _collect_uptime_info - uptime and macOS version
+#   _collect_cleanable_items - cache dirs, system-level cleanable, build artifacts
+#   _collect_trash - trash size and item count
+#   _collect_installer_files - DMG/PKG/ZIP files in Downloads
+#   _collect_network_info - active connections and DNS
+#   _collect_battery_info - battery level and status
+# END_MODULE_MAP
+#
+# START_CHANGE_SUMMARY
+#   v1.0.0 - Initial module. 9 base collection sections + auto-source collector_ext.sh.
+# END_CHANGE_SUMMARY
 
 if [[ -n "${MOLE_AI_COLLECTOR_LOADED:-}" ]]; then
     return 0

@@ -1,6 +1,6 @@
 #!/bin/bash
 # FILE: lib/ai/executor.sh
-# VERSION: 1.0.0
+# VERSION: 1.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Execute confirmed AI advisor plan items via safe_remove
 #   SCOPE: Glob expansion, path resolution, safe deletion execution
@@ -32,13 +32,6 @@ _MOLE_AI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [[ -z "${MOLE_AI_FILEOPS_LOADED:-}" ]] && source "$_MOLE_AI_DIR/../core/file_ops.sh"
 [[ -z "${MOLE_AI_RENDERER_LOADED:-}" ]] && source "$_MOLE_AI_DIR/renderer.sh"
 
-# START_CONTRACT: _expand_glob_paths
-#   PURPOSE: Expand a glob path pattern to actual filesystem paths
-#   INPUTS: { pattern: String - path pattern, may end with /* for directory contents }
-#   OUTPUTS: { String - one path per line on stdout }
-#   SIDE_EFFECTS: none
-#   LINKS: M-AI-EXECUTOR
-# END_CONTRACT: _expand_glob_paths
 # START_CONTRACT: _get_tool_specific_cmd
 #   PURPOSE: Return tool-specific cleanup command for known cache/tool paths
 #   INPUTS: { path: String - filesystem path to clean }
@@ -103,6 +96,13 @@ _format_skip_reason() {
     esac
 }
 
+# START_CONTRACT: _expand_glob_paths
+#   PURPOSE: Expand a glob path pattern to actual filesystem paths
+#   INPUTS: { pattern: String - path pattern, may end with /* for directory contents }
+#   OUTPUTS: { String - one path per line on stdout }
+#   SIDE_EFFECTS: none
+#   LINKS: M-AI-EXECUTOR
+# END_CONTRACT: _expand_glob_paths
 _expand_glob_paths() {
     local pattern="$1"
     if [[ "$pattern" == *"/*" ]]; then
