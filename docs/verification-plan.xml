@@ -1,0 +1,201 @@
+<VerificationPlan VERSION="1.0.0">
+  <GlobalPolicy>
+    <log-format>No structured logs. Step-based progress: _step/_step_ok/_step_fail with numbered output.</log-format>
+    <deterministic-first>true</deterministic-first>
+    <module-level-focus>bash -n syntax check after every edit. Collector output verification via --dry-run.</module-level-focus>
+    <wave-level-focus>Verify all AI modules source without error. Test JSON extraction with sample LLM responses.</wave-level-focus>
+    <phase-level-focus>bats test suite for collector, config, and plan parsing. Full flow integration test with mocked API.</phase-level-focus>
+    <redaction>API key must never appear in test output or logs. Use mock config for tests.</redaction>
+  </GlobalPolicy>
+
+  <CriticalFlows>
+    <VF-001 NAME="Advisor Happy Path" USE_CASES="UC-001" DATA_FLOW="DF-ADVISE" PRIORITY="high">
+      <scenario>User runs mo advisor, sees report, selects items, confirms with "yes", items deleted successfully.</scenario>
+      <expected-outcome>All selected items removed. Summary shows correct count and recovered space.</expected-outcome>
+      <required-signals>
+        <signal-1>Step progress shows all steps completed with _step_ok</signal-1>
+        <signal-2>Report rendered with 4 sections: Disk Usage, Not Recommended, Low Risk, Medium/High Risk</signal-2>
+        <signal-3>Menu shows [x]/[ ] checkboxes with item count</signal-3>
+        <signal-4>Confirmation lists paths and requires typed yes</signal-4>
+        <signal-5>Execution shows per-item removed/skipped status</signal-5>
+      </required-signals>
+    </VF-001>
+
+    <VF-002 NAME="Protected Path Rejection" USE_CASES="UC-001" PRIORITY="high">
+      <scenario>LLM recommends a protected path (e.g. /Users/.../Library/Messages). safe_remove must reject it.</scenario>
+      <expected-outcome>Item shows "Skipped (protected)" in execution summary. No data loss.</expected-outcome>
+      <required-signals>
+        <signal-1>safe_remove returns non-zero for protected paths</signal-1>
+        <signal-2>Skipped items counted separately from removed items</signal-2>
+      </required-signals>
+    </VF-002>
+
+    <VF-003 NAME="Collector Accuracy" USE_CASES="UC-001" PRIORITY="high">
+      <scenario>Collector scans user dirs, system dirs, and large containers with timeout guards.</scenario>
+      <expected-outcome>All 9+ sections output. Sizes are non-zero for existing directories. Timeouts return 0 gracefully.</expected-outcome>
+      <required-signals>
+        <signal-1>=== SECTION === headers present for all sections</signal-1>
+        <signal-2>_fast_du_sk_bg returns 0 on timeout, does not hang</signal-2>
+        <signal-3>Docker, Applications, Homebrew sizes reported when present</signal-3>
+      </required-signals>
+    </VF-003>
+  </CriticalFlows>
+
+  <ModuleVerification>
+
+    <V-M-AI-CONFIG MODULE="M-AI-CONFIG" PRIORITY="high">
+      <test-files>
+        <file>tests/unit/ai/config.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n lib/ai/config.sh</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">ai_config_get returns configured value</scenario-1>
+        <scenario-2 kind="success">ai_config_is_configured returns true when endpoint+model set</scenario-2>
+        <scenario-3 kind="failure">ai_config_is_configured returns false when config missing</scenario-3>
+      </scenarios>
+    </V-M-AI-CONFIG>
+
+    <V-M-AI-CLIENT MODULE="M-AI-CLIENT" PRIORITY="high">
+      <test-files>
+        <file>tests/unit/ai/client.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n lib/ai/client.sh</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">ai_client_chat returns content from mocked 200 response</scenario-1>
+        <scenario-2 kind="failure">ai_client_chat returns error on HTTP 401</scenario-2>
+        <scenario-3 kind="failure">ai_client_chat returns error on timeout</scenario-3>
+      </scenarios>
+    </V-M-AI-CLIENT>
+
+    <V-M-AI-COLLECTOR MODULE="M-AI-COLLECTOR" PRIORITY="high">
+      <test-files>
+        <file>tests/unit/ai/collector.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n lib/ai/collector.sh</check-1>
+        <check-2>mo advisor --dry-run (manual — verify all sections present including extended)</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">collector_run_all outputs all section headers including DOCKER, HOMEBREW, XCODE</scenario-1>
+        <scenario-2 kind="success">_fast_du_sk returns numeric value for known directory</scenario-2>
+        <scenario-3 kind="success">_fast_du_sk_bg returns empty string on timeout</scenario-3>
+        <scenario-4 kind="success">_collect_trash handles permission denied gracefully</scenario-4>
+      </scenarios>
+    </V-M-AI-COLLECTOR>
+
+    <V-M-AI-COLLECTOR-EXT MODULE="M-AI-COLLECTOR-EXT" PRIORITY="medium">
+      <test-files>
+        <file>tests/unit/ai/collector_ext.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n lib/ai/collector_ext.sh</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">_collect_docker_info reports "not installed" when docker absent</scenario-1>
+        <scenario-2 kind="success">_collect_homebrew_info reports cellar breakdown when brew present</scenario-2>
+        <scenario-3 kind="success">_collect_xcode_info reports simulator list and archive sizes</scenario-3>
+      </scenarios>
+    </V-M-AI-COLLECTOR-EXT>
+
+    <V-M-AI-RENDERER MODULE="M-AI-RENDERER" PRIORITY="high">
+      <test-files>
+        <file>tests/unit/ai/renderer.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n lib/ai/renderer.sh</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">_extract_json_plan extracts JSON from markdown + code fence</scenario-1>
+        <scenario-2 kind="success">_parse_plan_items parses JSON plan into pipe-delimited lines</scenario-2>
+        <scenario-3 kind="success">_load_plan populates arrays correctly</scenario-3>
+        <scenario-4 kind="failure">_extract_json_plan returns empty when no JSON block present</scenario-4>
+        <scenario-5 kind="success">_render_report formats table and list items correctly</scenario-5>
+        <scenario-6 kind="success">_cycle_risk_filter cycles through SAFE/CAUTION/RISKY/all</scenario-6>
+        <scenario-7 kind="success">_update_visible_indices filters items by risk level</scenario-7>
+      </scenarios>
+    </V-M-AI-RENDERER>
+
+    <V-M-AI-EXECUTOR MODULE="M-AI-EXECUTOR" PRIORITY="high">
+      <test-files>
+        <file>tests/unit/ai/executor.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n lib/ai/executor.sh</check-1>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">_expand_glob_paths expands directory/* to contained items</scenario-1>
+        <scenario-2 kind="success">_execute_plan skips non-existent paths gracefully</scenario-2>
+        <scenario-3 kind="success">_execute_plan reports skipped protected items</scenario-3>
+      </scenarios>
+    </V-M-AI-EXECUTOR>
+
+    <V-M-AI-ADVISOR MODULE="M-AI-ADVISOR" PRIORITY="high">
+      <test-files>
+        <file>tests/unit/ai/advisor.bats</file>
+      </test-files>
+      <module-checks>
+        <check-1>bash -n bin/advisor.sh</check-1>
+        <check-2>bash -n lib/ai/*.sh</check-2>
+      </module-checks>
+      <scenarios>
+        <scenario-1 kind="success">--help shows usage with --auto-safe flag</scenario-1>
+        <scenario-2 kind="success">--auto-safe auto-selects only SAFE items</scenario-2>
+        <scenario-3 kind="success">_call_ai_with_retry retries on first failure</scenario-3>
+        <scenario-4 kind="failure">_call_ai_with_retry returns error after max retries</scenario-4>
+      </scenarios>
+    </V-M-AI-ADVISOR>
+
+  </ModuleVerification>
+
+  <PhaseGates>
+    <Gate-Phase-1 PHASE="Phase-1">
+      <goal>AI advisor core works end-to-end with real LLM endpoint.</goal>
+      <commands>
+        <command-1>bash -n bin/advisor.sh &amp;&amp; bash -n lib/ai/*.sh</command-1>
+        <command-2>mo advisor --dry-run</command-2>
+      </commands>
+      <required-evidence>
+        <evidence-1>All syntax checks pass</evidence-1>
+        <evidence-2>Dry run shows 9+ collector sections</evidence-2>
+        <evidence-3>Full advisor flow tested in terminal with real LLM</evidence-3>
+      </required-evidence>
+    </Gate-Phase-1>
+
+    <Gate-Phase-2 PHASE="Phase-2">
+      <goal>Modularized advisor with extended collection and UX polish.</goal>
+      <commands>
+        <command-1>bash -n bin/advisor.sh &amp;&amp; bash -n lib/ai/*.sh</command-1>
+        <command-2>mo advisor --dry-run (verify DOCKER, HOMEBREW, XCODE sections)</command-2>
+      </commands>
+      <required-evidence>
+        <evidence-1>All 6 lib/ai/*.sh files pass syntax check</evidence-1>
+        <evidence-2>Dry run shows 12+ collector sections (original 9 + Docker, Homebrew, Xcode)</evidence-2>
+        <evidence-3>--auto-safe auto-selects only SAFE items</evidence-3>
+        <evidence-4>F key in menu cycles risk filter</evidence-4>
+        <evidence-5>API retry works on transient failures</evidence-5>
+      </required-evidence>
+    </Gate-Phase-2>
+
+    <Gate-Phase-3 PHASE="Phase-3">
+      <goal>Test coverage and distribution integration.</goal>
+      <commands>
+        <command-1>bats tests/unit/ai/</command-1>
+        <command-2>shellcheck lib/ai/*.sh bin/advisor.sh</command-2>
+      </commands>
+      <required-evidence>
+        <evidence-1>All bats tests pass</evidence-1>
+        <evidence-2>advisor documented in mole help and README</evidence-2>
+      </required-evidence>
+    </Gate-Phase-3>
+  </PhaseGates>
+
+  <FailurePackets>
+    <packet-template>
+      <expected-fields>scenario, expected-evidence, observed-evidence, first-divergent-block, next-action</expected-fields>
+    </packet-template>
+  </FailurePackets>
+</VerificationPlan>

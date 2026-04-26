@@ -1,0 +1,57 @@
+<TechnologyStack VERSION="1.0.0">
+  <Runtime>Bash 3.2+ (macOS system bash)</Runtime>
+  <Language>Bash (POSIX-compatible subset, no bashisms below 3.2)</Language>
+  <Framework>None — custom modular CLI with source-based module loading</Framework>
+
+  <Dependencies>
+    <dep name="curl" version="system" purpose="HTTP client for LLM API calls (SSE streaming + standard)" />
+    <dep name="python3" version="system" purpose="JSON parsing (jq not guaranteed on macOS), response extraction" />
+    <dep name="du/df" version="system" purpose="Disk usage measurement with timeout guards" />
+    <dep name="sysctl/vm_stat" version="system" purpose="Memory, CPU, uptime data collection" />
+    <dep name="find" version="system" purpose="File scanning for build artifacts and cleanable items" />
+    <dep name="perl" version="system" purpose="Not used — previously attempted for du timeouts, removed" />
+  </Dependencies>
+
+  <VersionConstraints>
+    <constraint lib="bash" min="3.2" max="5.x" reason="macOS ships bash 3.2; user may install 5.x via homebrew" />
+    <constraint lib="python3" min="3.6" max="3.x" reason="f-strings used in JSON parsing scripts" />
+  </VersionConstraints>
+
+  <Tooling>
+    <tool name="linter" value="shellcheck" version="0.9+" />
+    <tool name="syntax-check" value="bash -n" />
+    <tool name="test-runner" value="bats (Bash Automated Testing System)" />
+    <tool name="config-format" value="INI-style key=value in ~/.config/mole/ai.conf" />
+  </Tooling>
+
+  <Testing>
+    <module-level>
+      <command>bats tests/unit/ai/*.bats</command>
+      <focus>Unit tests for collector, config, JSON parsing, prompt generation</focus>
+    </module-level>
+    <wave-level>
+      <command>bash -n bin/advisor.sh &amp;&amp; bash -n lib/ai/*.sh</command>
+      <focus>Syntax validation after every edit wave</focus>
+    </wave-level>
+    <phase-level>
+      <command>shellcheck lib/ai/*.sh bin/advisor.sh</command>
+      <focus>Static analysis for common bash pitfalls</focus>
+    </phase-level>
+    <manual-verification>
+      <command>mo advisor --dry-run</command>
+      <focus>Inspect collector output without API call</focus>
+    </manual-verification>
+    <mocking-policy>No mocking framework. Test against real filesystem with temp dirs. Use --dry-run for collector verification.</mocking-policy>
+  </Testing>
+
+  <Observability>
+    <logger>echo/printf to stderr with color codes</logger>
+    <log-prefix>No structured log format. Step-based progress: _step/_step_ok/_step_fail</log-prefix>
+    <error-channels>stderr for errors and warnings, stdout for data and progress</error-channels>
+    <redaction>API key never logged. MO_DEBUG=1 enables verbose output.</redaction>
+  </Observability>
+
+  <DeliveryShape>
+    <shape>Single-user CLI tool. No daemon. No database. Config in ~/.config/mole/ai.conf. Temp files in /tmp/.</shape>
+  </DeliveryShape>
+</TechnologyStack>

@@ -1,0 +1,360 @@
+<DevelopmentPlan VERSION="1.1.0">
+  <ArchitectureNotes>
+    <objective>Provide a safe, transparent AI-powered system advisor that collects real system data, sends it to a configurable LLM, and executes only user-confirmed deletions through mole's existing safe_remove pipeline.</objective>
+    <non-goal>The advisor does not replace existing mole commands. It augments them with LLM-driven analysis for users who want guided cleanup recommendations.</non-goal>
+    <risk-1>LLM hallucination — model may suggest non-existent paths or dangerous operations. All paths validated before deletion.</risk-1>
+    <risk-2>Collector accuracy — du on SIP-protected dirs returns 0 or hangs. Timeout guards and _fast_du_sk_bg mitigate this.</risk-2>
+  </ArchitectureNotes>
+
+  <Modules>
+
+    <!-- ==================== CORE LAYER (pre-existing, Layer 0) ==================== -->
+
+    <M-BASE NAME="Base" TYPE="UTILITY" LAYER="0" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Fundamental constants, colors, icons, platform detection, and utility functions shared by all modules</purpose>
+      </contract>
+      <target>
+        <source>lib/core/base.sh</source>
+      </target>
+      <notes>
+        <note-1>Pre-existing module. Not part of AI advisor scope but heavily depended upon.</note-1>
+      </notes>
+    </M-BASE>
+
+    <M-COMMON NAME="Common" TYPE="UTILITY" LAYER="0" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>Source-chain loader that brings in all core modules. Provides shared initialization and update flow.</purpose>
+      </contract>
+      <target>
+        <source>lib/core/common.sh</source>
+      </target>
+      <notes>
+        <note-1>Contains set -euo pipefail which affects all sourced files. AI advisor must use set +e after sourcing.</note-1>
+      </notes>
+    </M-COMMON>
+
+    <M-FILE-OPS NAME="File Operations" TYPE="CORE_LOGIC" LAYER="0" ORDER="3" STATUS="implemented">
+      <contract>
+        <purpose>safe_remove, validate_path_for_deletion, path size measurement. The trusted deletion pipeline.</purpose>
+      </contract>
+      <target>
+        <source>lib/core/file_ops.sh</source>
+      </target>
+      <notes>
+        <note-1>Critical dependency for AI advisor execution. All deletions go through safe_remove.</note-1>
+      </notes>
+    </M-FILE-OPS>
+
+    <M-UI NAME="UI" TYPE="UTILITY" LAYER="0" ORDER="4" STATUS="implemented">
+      <contract>
+        <purpose>Terminal UI primitives: read_key, hide/show_cursor, spinner, cursor control</purpose>
+      </contract>
+      <target>
+        <source>lib/core/ui.sh</source>
+      </target>
+    </M-UI>
+
+    <M-APP-PROTECTION NAME="App Protection" TYPE="CORE_LOGIC" LAYER="0" ORDER="5" STATUS="implemented">
+      <contract>
+        <purpose>should_protect_path — determines if a path is protected from deletion based on bundle IDs, system components, and critical data patterns</purpose>
+      </contract>
+      <target>
+        <source>lib/core/app_protection.sh</source>
+      </target>
+      <notes>
+        <note-1>Called by validate_path_for_deletion. Protects system settings, Notes, Finder, Dock, Bluetooth, WiFi, iCloud.</note-1>
+      </notes>
+    </M-APP-PROTECTION>
+
+    <!-- ==================== AI ADVISOR LAYER (Layer 1) ==================== -->
+
+    <M-AI-CONFIG NAME="AI Config" TYPE="UTILITY" LAYER="1" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Manage AI advisor configuration: endpoint URL, model name, API key, temperature, max_tokens, timeout. Stored in ~/.config/mole/ai.conf</purpose>
+        <inputs>
+          <param name="key" type="string" />
+          <param name="value" type="string" />
+        </inputs>
+        <outputs>
+          <param name="config_value" type="string" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-ai_config_get PURPOSE="Read config value by key" />
+        <fn-ai_config_set PURPOSE="Write config value" />
+        <fn-ai_config_setup PURPOSE="Interactive setup wizard" />
+        <fn-ai_config_show PURPOSE="Display current config" />
+        <fn-ai_config_is_configured PURPOSE="Check if endpoint and model are set" />
+      </interface>
+      <depends>M-BASE</depends>
+      <target>
+        <source>lib/ai/config.sh</source>
+      </target>
+      <verification-ref>V-M-AI-CONFIG</verification-ref>
+    </M-AI-CONFIG>
+
+    <M-AI-CLIENT NAME="AI Client" TYPE="INTEGRATION" LAYER="1" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>OpenAI-compatible HTTP client for chat completions API. Supports both standard and SSE streaming modes via curl + python3.</purpose>
+        <inputs>
+          <param name="system_prompt" type="string" />
+          <param name="user_message" type="string" />
+        </inputs>
+        <outputs>
+          <param name="response" type="string" />
+        </outputs>
+        <errors>
+          <error code="HTTP_401" description="Invalid API key" />
+          <error code="HTTP_404" description="Model not found at endpoint" />
+          <error code="timeout" description="Request exceeded configured timeout" />
+        </errors>
+      </contract>
+      <interface>
+        <fn-ai_client_chat PURPOSE="Standard (non-streaming) chat completion" />
+        <fn-ai_client_stream_chat PURPOSE="SSE streaming chat completion" />
+        <fn-ai_client_test PURPOSE="Test endpoint connectivity" />
+      </interface>
+      <depends>M-AI-CONFIG</depends>
+      <target>
+        <source>lib/ai/client.sh</source>
+      </target>
+      <verification-ref>V-M-AI-CLIENT</verification-ref>
+    </M-AI-CLIENT>
+
+    <M-AI-COLLECTOR NAME="System Collector" TYPE="INTEGRATION" LAYER="1" ORDER="3" STATUS="implemented">
+      <contract>
+        <purpose>Gather system state: disk usage (user+system dirs), memory, CPU, trash, cleanable items, build artifacts, installer files, network, battery. Auto-sources collector_ext.sh for Docker/Homebrew/Xcode data.</purpose>
+        <inputs>
+          <param name="none" type="none" />
+        </inputs>
+        <outputs>
+          <param name="data" type="string" description="Structured text with === SECTION === headers" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-collector_run_all PURPOSE="Run all collection sections to stdout, includes extended collectors" />
+        <fn-_fast_du_sk PURPOSE="Get directory size in KB via du -sk" />
+        <fn-_fast_du_sk_bg PURPOSE="Get directory size with background timeout guard" />
+        <fn-_collect_section PURPOSE="Output section header and call collector function" />
+      </interface>
+      <depends>M-BASE</depends>
+      <target>
+        <source>lib/ai/collector.sh</source>
+      </target>
+      <verification-ref>V-M-AI-COLLECTOR</verification-ref>
+      <notes>
+        <note-1>Must run in subprocess (bash -c) due to set -e inheritance from common.sh.</note-1>
+        <note-2>Auto-sources collector_ext.sh at end of collector_run_all.</note-2>
+      </notes>
+    </M-AI-COLLECTOR>
+
+    <M-AI-COLLECTOR-EXT NAME="Extended Collector" TYPE="INTEGRATION" LAYER="1" ORDER="3b" STATUS="implemented">
+      <contract>
+        <purpose>Extended system data collectors: Docker images/containers/volumes, Homebrew cache/outdated/cellar breakdown, Xcode simulators/archives/derived data.</purpose>
+        <inputs>
+          <param name="none" type="none" />
+        </inputs>
+        <outputs>
+          <param name="data" type="string" description="Structured text with === DOCKER/HOMEBREW/XCODE === headers" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-_collect_docker_info PURPOSE="Docker disk usage, images by size, containers, volumes by size" />
+        <fn-_collect_homebrew_info PURPOSE="Homebrew cache, cellar top packages, outdated packages" />
+        <fn-_collect_xcode_info PURPOSE="Xcode simulators, derived data, archives, device support" />
+        <fn-collector_ext_run_all PURPOSE="Run all extended sections" />
+      </interface>
+      <depends>M-AI-COLLECTOR</depends>
+      <target>
+        <source>lib/ai/collector_ext.sh</source>
+      </target>
+      <verification-ref>V-M-AI-COLLECTOR-EXT</verification-ref>
+    </M-AI-COLLECTOR-EXT>
+
+    <M-AI-PROMPT NAME="AI Prompt" TYPE="UTILITY" LAYER="1" ORDER="4" STATUS="implemented">
+      <contract>
+        <purpose>Define system prompt with risk taxonomy (SAFE/CAUTION/RISKY) and require structured response format: Disk Usage Summary table, Not Recommended section, Low Risk section, Medium/High Risk section, followed by JSON plan block.</purpose>
+        <inputs>
+          <param name="none" type="none" />
+        </inputs>
+        <outputs>
+          <param name="prompt" type="string" description="System prompt text" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-ai_system_prompt PURPOSE="Output the system prompt to stdout" />
+      </interface>
+      <depends>none</depends>
+      <target>
+        <source>lib/ai/prompt.sh</source>
+      </target>
+    </M-AI-PROMPT>
+
+    <M-AI-RENDERER NAME="AI Renderer" TYPE="CORE_LOGIC" LAYER="2" ORDER="0" STATUS="implemented">
+      <contract>
+        <purpose>Render AI advisor markdown report, parse JSON plan, interactive selection menu with risk filter (F key) and scrolling, confirmation prompt.</purpose>
+        <inputs>
+          <param name="md" type="string" description="Markdown report text" />
+          <param name="json" type="string" description="JSON plan object" />
+        </inputs>
+        <outputs>
+          <param name="arrays" type="parallel arrays" description="_PLAN_TITLES, _PLAN_REASONS, _PLAN_RISKS, _PLAN_PATHS, _PLAN_SIZES, _PLAN_CMDS, _PLAN_SELECTED, _PLAN_VISIBLE" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-_render_report PURPOSE="Parse LLM markdown and render formatted report sections" />
+        <fn-_extract_json_plan PURPOSE="Extract JSON block from LLM response" />
+        <fn-_parse_plan_items PURPOSE="Parse JSON plan into pipe-delimited lines" />
+        <fn-_load_plan PURPOSE="Load parsed plan into parallel arrays" />
+        <fn-_show_plan_menu PURPOSE="Render [x]/[ ] menu with scrolling and filter label" />
+        <fn-_interactive_select PURPOSE="Keyboard selection with F key risk filter, scrolling" />
+        <fn-_show_confirmation PURPOSE="Typed yes confirmation with paths listing" />
+        <fn-_risk_color PURPOSE="Color code for risk level" />
+        <fn-_risk_icon PURPOSE="Icon for risk level" />
+        <fn-_update_visible_indices PURPOSE="Recalculate visible items for current filter" />
+        <fn-_cycle_risk_filter PURPOSE="Cycle filter: empty -&gt; SAFE -&gt; CAUTION -&gt; RISKY -&gt; empty" />
+      </interface>
+      <depends>M-BASE, M-UI</depends>
+      <target>
+        <source>lib/ai/renderer.sh</source>
+      </target>
+      <verification-ref>V-M-AI-RENDERER</verification-ref>
+    </M-AI-RENDERER>
+
+    <M-AI-EXECUTOR NAME="AI Executor" TYPE="CORE_LOGIC" LAYER="2" ORDER="1" STATUS="implemented">
+      <contract>
+        <purpose>Execute confirmed plan items via safe_remove with glob expansion and per-item progress reporting.</purpose>
+        <inputs>
+          <param name="arrays" type="parallel arrays" description="Reads _PLAN_SELECTED, _PLAN_TITLES, _PLAN_RISKS, _PLAN_PATHS" />
+        </inputs>
+        <outputs>
+          <param name="summary" type="stdout" description="Execution progress and final summary" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-_expand_glob_paths PURPOSE="Expand glob patterns to filesystem paths" />
+        <fn-_execute_plan PURPOSE="Execute selected items via safe_remove with size tracking" />
+      </interface>
+      <depends>M-BASE, M-FILE-OPS, M-AI-RENDERER</depends>
+      <target>
+        <source>lib/ai/executor.sh</source>
+      </target>
+      <verification-ref>V-M-AI-EXECUTOR</verification-ref>
+    </M-AI-EXECUTOR>
+
+    <M-AI-ADVISOR NAME="AI Advisor CLI" TYPE="ENTRY_POINT" LAYER="2" ORDER="2" STATUS="implemented">
+      <contract>
+        <purpose>Main advisor command. Orchestrates: config check, data collection (subprocess), API call with retry, report rendering, interactive [x]/[ ] menu, confirmation, execution via safe_remove. Supports --auto-safe flag.</purpose>
+        <inputs>
+          <param name="--setup" type="flag" description="Run interactive config wizard" />
+          <param name="--show-config" type="flag" description="Display current AI configuration" />
+          <param name="--no-stream" type="flag" description="Use non-streaming API call" />
+          <param name="--dry-run" type="flag" description="Collect data only, no API call" />
+          <param name="--auto-safe" type="flag" description="Auto-select SAFE items, skip menu" />
+        </inputs>
+        <outputs>
+          <param name="exit_code" type="int" description="0 success, 1 error, 130 interrupt" />
+        </outputs>
+      </contract>
+      <interface>
+        <fn-main PURPOSE="Entry point: parse args, orchestrate flow" />
+        <fn-_call_ai_with_retry PURPOSE="Call AI with up to 2 retries on failure" />
+        <fn-_step PURPOSE="Show numbered progress step" />
+        <fn-_step_ok PURPOSE="Show completed step" />
+        <fn-_step_fail PURPOSE="Show failed step" />
+      </interface>
+      <depends>M-AI-CONFIG, M-AI-CLIENT, M-AI-COLLECTOR, M-AI-COLLECTOR-EXT, M-AI-PROMPT, M-AI-RENDERER, M-AI-EXECUTOR, M-FILE-OPS, M-UI, M-LOG</depends>
+      <target>
+        <source>bin/advisor.sh</source>
+      </target>
+      <verification-ref>V-M-AI-ADVISOR</verification-ref>
+      <notes>
+        <note-1>Default selection is all unchecked. User must actively select items with Space.</note-1>
+        <note-2>Confirmation requires typing "yes" — no accidental Enter confirmations.</note-2>
+        <note-3>Glob paths (ending in /*) expand to directory contents and delete items inside, not the directory itself.</note-3>
+        <note-4>--auto-safe auto-selects only SAFE items and skips interactive menu.</note-4>
+        <note-5>API calls retry up to 2 times on failure with 2-second delay.</note-5>
+      </notes>
+    </M-AI-ADVISOR>
+
+  </Modules>
+
+  <DataFlow>
+    <DF-ADVISE NAME="Full Advisor Flow" TRIGGER="mo advisor">
+      <step-1>User runs `mo advisor`</step-1>
+      <step-2>advisor.sh checks config (M-AI-CONFIG), prompts setup if missing</step-2>
+      <step-3>collector_run_all (M-AI-COLLECTOR) runs in subprocess, auto-sources M-AI-COLLECTOR-EXT for Docker/Homebrew/Xcode</step-3>
+      <step-4>_call_ai_with_retry sends prompt+data via M-AI-CLIENT (up to 2 retries)</step-4>
+      <step-5>Response captured. Markdown report extracted and rendered via M-AI-RENDERER _render_report</step-5>
+      <step-6>JSON plan block extracted via M-AI-RENDERER _extract_json_plan, parsed into arrays</step-6>
+      <step-7>M-AI-RENDERER _interactive_select shows menu with F key risk filter and scrolling</step-7>
+      <step-8>M-AI-RENDERER _show_confirmation lists selected paths, requires typed "yes"</step-8>
+      <step-9>M-AI-EXECUTOR _execute_plan iterates paths, expands globs, calls safe_remove (M-FILE-OPS)</step-9>
+      <step-10>Summary displayed: items removed, space recovered, items skipped</step-10>
+      <evidence>Step progress output, report rendering, menu interaction, execution log</evidence>
+    </DF-ADVISE>
+
+    <DF-CONFIG NAME="Config Setup Flow" TRIGGER="mo advisor --setup">
+      <step-1>User runs `mo advisor --setup`</step-1>
+      <step-2>ai_config_setup prompts for endpoint, model, API key, optional parameters</step-2>
+      <step-3>Values validated and written to ~/.config/mole/ai.conf</step-3>
+      <evidence>Config file created at ~/.config/mole/ai.conf</evidence>
+    </DF-CONFIG>
+
+    <DF-DRY-RUN NAME="Dry Run Flow" TRIGGER="mo advisor --dry-run">
+      <step-1>User runs `mo advisor --dry-run`</step-1>
+      <step-2>collector_run_all runs in subprocess</step-2>
+      <step-3>Collected data printed to terminal</step-3>
+      <step-4>No API call, no menu, no deletions</step-4>
+      <evidence>Terminal output shows all collector sections</evidence>
+    </DF-DRY-RUN>
+  </DataFlow>
+
+  <ImplementationOrder>
+    <Phase-1 name="AI Advisor Core" status="done">
+      <goal>Working AI advisor with data collection, LLM integration, interactive menu, and safe execution</goal>
+      <step-1 module="M-AI-CONFIG" status="done" verification="V-M-AI-CONFIG">Config management module</step-1>
+      <step-2 module="M-AI-CLIENT" status="done" verification="V-M-AI-CLIENT">HTTP client with streaming support</step-2>
+      <step-3 module="M-AI-COLLECTOR" status="done" verification="V-M-AI-COLLECTOR">System data collector</step-3>
+      <step-4 module="M-AI-PROMPT" status="done">System prompt with risk taxonomy</step-4>
+      <step-5 module="M-AI-ADVISOR" status="done" verification="V-M-AI-ADVISOR">Main CLI command with report, menu, execution</step-5>
+    </Phase-1>
+
+    <Phase-2 name="Modularization &amp; Extended Collection" status="done">
+      <goal>Extract renderer/executor into separate modules, add Docker/Homebrew/Xcode collectors, add UX features (risk filter, scrolling, --auto-safe, API retry)</goal>
+      <Phase-2A name="Module Extraction" status="done">
+        <step-1 module="M-AI-RENDERER" status="done" verification="V-M-AI-RENDERER">Extract _render_report, plan parsing, menu, confirmation into lib/ai/renderer.sh</step-1>
+        <step-2 module="M-AI-EXECUTOR" status="done" verification="V-M-AI-EXECUTOR">Extract _execute_plan, _expand_glob_paths into lib/ai/executor.sh</step-2>
+        <step-3 module="M-AI-ADVISOR" status="done">Update bin/advisor.sh to source new modules, remove inline functions</step-3>
+      </Phase-2A>
+      <Phase-2B name="Extended Collection" status="done">
+        <step-1 module="M-AI-COLLECTOR-EXT" status="done" verification="V-M-AI-COLLECTOR-EXT">Docker info collector (images, containers, volumes)</step-1>
+        <step-2 module="M-AI-COLLECTOR-EXT" status="done">Homebrew info collector (cache, cellar, outdated)</step-2>
+        <step-3 module="M-AI-COLLECTOR-EXT" status="done">Xcode info collector (simulators, derived data, archives)</step-3>
+        <step-4 module="M-AI-COLLECTOR" status="done">Auto-source collector_ext.sh in collector_run_all</step-4>
+      </Phase-2B>
+      <Phase-2C name="UX Polish" status="done">
+        <step-1 module="M-AI-ADVISOR" status="done">--auto-safe flag: auto-select SAFE items, skip menu</step-1>
+        <step-2 module="M-AI-ADVISOR" status="done">API retry: up to 2 retries with 2-second delay</step-2>
+        <step-3 module="M-AI-RENDERER" status="done">Risk filter: F key cycles SAFE/CAUTION/RISKY/all</step-3>
+        <step-4 module="M-AI-RENDERER" status="done">Scrolling: page-size 15, scroll offset for large lists</step-4>
+      </Phase-2C>
+    </Phase-2>
+
+    <Phase-3 name="Testing &amp; Distribution" status="done">
+      <goal>Comprehensive test coverage and integration with mole's distribution</goal>
+      <step-1 module="M-AI-COLLECTOR" status="done">bats tests for collector: mock du output, verify section format, timeout behavior</step-1>
+      <step-2 module="M-AI-RENDERER" status="done">bats tests for JSON extraction, plan parsing, risk filter with various LLM response formats</step-2>
+      <step-3 module="M-AI-EXECUTOR" status="done">bats tests for glob expansion, safe_remove integration</step-3>
+      <step-4 module="M-AI-COLLECTOR-EXT" status="done">bats tests for Docker/Homebrew/Xcode collectors with mocked commands</step-4>
+      <step-5 module="M-AI-ADVISOR" status="done">Integration test: full flow with mocked API response</step-5>
+    </Phase-3>
+  </ImplementationOrder>
+
+  <ExecutionPolicy>
+    <default-profile>balanced</default-profile>
+    <controller-owns>docs/development-plan.xml, docs/knowledge-graph.xml, docs/verification-plan.xml</controller-owns>
+    <worker-owns>Only module source files and module-local tests inside the approved write scope.</worker-owns>
+  </ExecutionPolicy>
+</DevelopmentPlan>

@@ -1,0 +1,212 @@
+<KnowledgeGraph>
+  <Project NAME="Mole" VERSION="1.0.0">
+    <keywords>macOS, system-maintenance, disk-cleanup, optimization, bash, cli, ai-advisor, llm-integration, openai-compatible, interactive-menu, safe-deletion</keywords>
+    <annotation>macOS system maintenance CLI with AI-powered advisor. Disk cleanup, optimization, health checks, uninstall management, and LLM-driven interactive system analysis with risk-tagged cleanup recommendations.</annotation>
+
+    <!-- ==================== CORE LAYER ==================== -->
+
+    <M-BASE NAME="Base" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Fundamental constants, colors, icons, platform detection, byte conversion utilities</purpose>
+      <path>lib/core/base.sh</path>
+      <depends>none</depends>
+      <annotations>
+        <fn-bytes_to_human PURPOSE="Convert bytes to human-readable format" />
+        <fn-bytes_to_human_kb PURPOSE="Convert KB to human-readable format" />
+        <fn-detect_architecture PURPOSE="Detect Apple Silicon vs Intel" />
+        <fn-get_epoch_seconds PURPOSE="Get current epoch timestamp" />
+      </annotations>
+    </M-BASE>
+
+    <M-COMMON NAME="Common" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Source-chain loader bringing in all core modules. Provides update flow and shared initialization.</purpose>
+      <path>lib/core/common.sh</path>
+      <depends>M-BASE, M-FILE-OPS, M-UI, M-APP-PROTECTION, M-LOG</depends>
+      <notes>
+        <note-1>Contains set -euo pipefail that affects all downstream sources.</note-1>
+      </notes>
+    </M-COMMON>
+
+    <M-FILE-OPS NAME="File Operations" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>safe_remove, validate_path_for_deletion, path size measurement. Trusted deletion pipeline.</purpose>
+      <path>lib/core/file_ops.sh</path>
+      <depends>M-BASE, M-APP-PROTECTION</depends>
+      <annotations>
+        <fn-safe_remove PURPOSE="Validate and delete a path with rm -rf" />
+        <fn-validate_path_for_deletion PURPOSE="Check path against protected patterns, SIP, traversal attempts" />
+        <fn-get_path_size_kb PURPOSE="Get path size in KB" />
+      </annotations>
+    </M-FILE-OPS>
+
+    <M-UI NAME="UI" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Terminal UI primitives: read_key, hide/show cursor, spinner, drain_pending_input</purpose>
+      <path>lib/core/ui.sh</path>
+      <depends>M-BASE</depends>
+      <annotations>
+        <fn-read_key PURPOSE="Read single keypress, return UP/DOWN/ENTER/SPACE/QUIT/CHAR:x" />
+        <fn-hide_cursor PURPOSE="Hide terminal cursor" />
+        <fn-show_cursor PURPOSE="Show terminal cursor" />
+      </annotations>
+    </M-UI>
+
+    <M-APP-PROTECTION NAME="App Protection" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>should_protect_path — validates paths against system-critical and user-critical patterns</purpose>
+      <path>lib/core/app_protection.sh</path>
+      <depends>M-BASE</depends>
+      <annotations>
+        <fn-should_protect_path PURPOSE="Return 0 if path is protected from deletion" />
+      </annotations>
+    </M-APP-PROTECTION>
+
+    <M-LOG NAME="Log" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Logging infrastructure with levels, debug log file support</purpose>
+      <path>lib/core/log.sh</path>
+      <depends>M-BASE</depends>
+    </M-LOG>
+
+    <!-- ==================== AI ADVISOR ==================== -->
+
+    <M-AI-CONFIG NAME="AI Config" TYPE="UTILITY" STATUS="implemented">
+      <purpose>Manage AI endpoint configuration stored in ~/.config/mole/ai.conf</purpose>
+      <path>lib/ai/config.sh</path>
+      <depends>M-BASE</depends>
+      <verification-ref>V-M-AI-CONFIG</verification-ref>
+      <annotations>
+        <fn-ai_config_get PURPOSE="Read config value by key" />
+        <fn-ai_config_set PURPOSE="Write config value" />
+        <fn-ai_config_setup PURPOSE="Interactive setup wizard" />
+        <fn-ai_config_show PURPOSE="Display current config (masks API key)" />
+        <fn-ai_config_is_configured PURPOSE="Check if endpoint and model are set" />
+        <fn-ai_config_get_endpoint PURPOSE="Get API endpoint URL" />
+        <fn-ai_config_get_model PURPOSE="Get model name" />
+        <fn-ai_config_get_api_key PURPOSE="Get API key" />
+        <fn-ai_config_get_max_tokens PURPOSE="Get max_tokens parameter" />
+        <fn-ai_config_get_temperature PURPOSE="Get temperature parameter" />
+        <fn-ai_config_get_timeout PURPOSE="Get request timeout in seconds" />
+      </annotations>
+    </M-AI-CONFIG>
+
+    <M-AI-CLIENT NAME="AI Client" TYPE="INTEGRATION" STATUS="implemented">
+      <purpose>OpenAI-compatible HTTP client with standard and SSE streaming modes</purpose>
+      <path>lib/ai/client.sh</path>
+      <depends>M-AI-CONFIG</depends>
+      <verification-ref>V-M-AI-CLIENT</verification-ref>
+      <annotations>
+        <fn-ai_client_chat PURPOSE="Standard chat completion request" />
+        <fn-ai_client_stream_chat PURPOSE="SSE streaming chat completion" />
+        <fn-ai_client_test PURPOSE="Test endpoint connectivity" />
+        <fn-_build_messages_json PURPOSE="Build JSON messages array from system + user prompts" />
+        <fn-_json_escape_string PURPOSE="Escape string for JSON embedding" />
+      </annotations>
+    </M-AI-CLIENT>
+
+    <M-AI-COLLECTOR NAME="System Collector" TYPE="INTEGRATION" STATUS="implemented">
+      <purpose>Gather system state: disk usage (user+system dirs), memory, CPU, trash, cleanable items, build artifacts, installer files, Docker/Homebrew/cache sizes, network, battery</purpose>
+      <path>lib/ai/collector.sh</path>
+      <depends>M-BASE</depends>
+      <verification-ref>V-M-AI-COLLECTOR</verification-ref>
+      <annotations>
+        <fn-collector_run_all PURPOSE="Run all collection sections to stdout" />
+        <fn-_fast_du_sk PURPOSE="Get directory size in KB via du -sk" />
+        <fn-_fast_du_sk_bg PURPOSE="Get directory size with background timeout guard" />
+        <fn-_collect_section PURPOSE="Output section header and call collector function" />
+        <fn-_collect_disk_usage PURPOSE="Scan user dirs, system dirs, large containers" />
+        <fn-_collect_memory_info PURPOSE="Memory stats from sysctl + vm_stat" />
+        <fn-_collect_cpu_info PURPOSE="CPU info and top processes" />
+        <fn-_collect_uptime_info PURPOSE="Uptime and macOS version" />
+        <fn-_collect_cleanable_items PURPOSE="Cache dirs, system-level cleanable, build artifacts" />
+        <fn-_collect_trash PURPOSE="Trash size and item count" />
+        <fn-_collect_installer_files PURPOSE="DMG/PKG/ZIP files in Downloads" />
+        <fn-_collect_network_info PURPOSE="Active connections and DNS" />
+        <fn-_collect_battery_info PURPOSE="Battery level and status" />
+      </annotations>
+    </M-AI-COLLECTOR>
+
+    <M-AI-PROMPT NAME="AI Prompt" TYPE="UTILITY" STATUS="implemented">
+      <purpose>System prompt with risk taxonomy and required response format (markdown report + JSON plan)</purpose>
+      <path>lib/ai/prompt.sh</path>
+      <depends>none</depends>
+      <annotations>
+        <fn-ai_system_prompt PURPOSE="Output system prompt text to stdout" />
+      </annotations>
+    </M-AI-PROMPT>
+
+    <M-AI-ADVISOR NAME="AI Advisor CLI" TYPE="ENTRY_POINT" STATUS="implemented">
+      <purpose>Main advisor command: collection, API call with retry, report rendering, interactive menu, confirmation, execution. Supports --auto-safe flag.</purpose>
+      <path>bin/advisor.sh</path>
+      <depends>M-AI-CONFIG, M-AI-CLIENT, M-AI-COLLECTOR, M-AI-COLLECTOR-EXT, M-AI-PROMPT, M-AI-RENDERER, M-AI-EXECUTOR, M-FILE-OPS, M-UI, M-LOG</depends>
+      <verification-ref>V-M-AI-ADVISOR</verification-ref>
+      <annotations>
+        <fn-main PURPOSE="Entry point: parse args, collect data, call AI, render report, interactive select, confirm, execute" />
+        <fn-_call_ai_with_retry PURPOSE="Call AI with up to 2 retries on failure" />
+        <fn-_step PURPOSE="Show numbered progress step" />
+        <fn-_step_ok PURPOSE="Show completed step with green checkmark" />
+        <fn-_step_fail PURPOSE="Show failed step with red icon" />
+        <fn-_show_usage PURPOSE="Display help text" />
+      </annotations>
+    </M-AI-ADVISOR>
+
+    <M-AI-RENDERER NAME="AI Renderer" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Render AI advisor markdown report, parse JSON plan, interactive selection menu with risk filter and scrolling, confirmation prompt</purpose>
+      <path>lib/ai/renderer.sh</path>
+      <depends>M-BASE, M-UI</depends>
+      <verification-ref>V-M-AI-RENDERER</verification-ref>
+      <annotations>
+        <fn-_render_report PURPOSE="Parse LLM markdown and render formatted report sections" />
+        <fn-_extract_json_plan PURPOSE="Extract JSON block from LLM response (sed + python3 fallback)" />
+        <fn-_parse_plan_items PURPOSE="Parse JSON plan into pipe-delimited lines via python3" />
+        <fn-_load_plan PURPOSE="Load parsed plan into parallel arrays (_PLAN_TITLES, etc.)" />
+        <fn-_show_plan_menu PURPOSE="Render [x]/[ ] menu with risk colors, scrolling, filter label" />
+        <fn-_interactive_select PURPOSE="Keyboard-driven selection loop with F key risk filter" />
+        <fn-_show_confirmation PURPOSE="Typed yes confirmation with path listing" />
+        <fn-_risk_color PURPOSE="Return color code for risk level" />
+        <fn-_risk_icon PURPOSE="Return icon for risk level" />
+        <fn-_update_visible_indices PURPOSE="Recalculate visible items based on risk filter" />
+        <fn-_cycle_risk_filter PURPOSE="Cycle risk filter: empty -&gt; SAFE -&gt; CAUTION -&gt; RISKY -&gt; empty" />
+      </annotations>
+    </M-AI-RENDERER>
+
+    <M-AI-EXECUTOR NAME="AI Executor" TYPE="CORE_LOGIC" STATUS="implemented">
+      <purpose>Execute confirmed plan items via safe_remove with glob expansion and progress reporting</purpose>
+      <path>lib/ai/executor.sh</path>
+      <depends>M-BASE, M-FILE-OPS, M-AI-RENDERER</depends>
+      <verification-ref>V-M-AI-EXECUTOR</verification-ref>
+      <annotations>
+        <fn-_expand_glob_paths PURPOSE="Expand glob patterns to actual filesystem paths" />
+        <fn-_execute_plan PURPOSE="Execute selected items via safe_remove with size tracking" />
+      </annotations>
+    </M-AI-EXECUTOR>
+
+    <M-AI-COLLECTOR-EXT NAME="Extended Collector" TYPE="INTEGRATION" STATUS="implemented">
+      <purpose>Extended system data collectors: Docker images/containers/volumes, Homebrew cache/outdated/cellar, Xcode simulators/archives/derived data</purpose>
+      <path>lib/ai/collector_ext.sh</path>
+      <depends>M-AI-COLLECTOR</depends>
+      <verification-ref>V-M-AI-COLLECTOR-EXT</verification-ref>
+      <annotations>
+        <fn-_collect_docker_info PURPOSE="Docker disk usage, images, containers, volumes" />
+        <fn-_collect_homebrew_info PURPOSE="Homebrew cache, cellar breakdown, outdated packages" />
+        <fn-_collect_xcode_info PURPOSE="Xcode simulators, derived data, archives, device support" />
+        <fn-collector_ext_run_all PURPOSE="Run all extended collection sections" />
+      </annotations>
+    </M-AI-COLLECTOR-EXT>
+
+    <!-- ==================== CROSS-LINKS ==================== -->
+
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-CONFIG" relation="reads endpoint, model, api_key" />
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-CLIENT" relation="sends prompt + data, receives response" />
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-COLLECTOR" relation="runs collector in subprocess" />
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-COLLECTOR-EXT" relation="via collector_run_all auto-source" />
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-PROMPT" relation="loads system prompt" />
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-RENDERER" relation="sources for report, plan parsing, menu, confirmation" />
+    <CrossLink from="M-AI-ADVISOR" to="M-AI-EXECUTOR" relation="sources for plan execution" />
+    <CrossLink from="M-AI-ADVISOR" to="M-FILE-OPS" relation="indirect via M-AI-EXECUTOR safe_remove" />
+    <CrossLink from="M-AI-ADVISOR" to="M-UI" relation="uses read_key, cursor control" />
+    <CrossLink from="M-AI-ADVISOR" to="M-COMMON" relation="sources common.sh for module chain" />
+    <CrossLink from="M-AI-EXECUTOR" to="M-AI-RENDERER" relation="reads _PLAN_* arrays and _risk_color" />
+    <CrossLink from="M-AI-EXECUTOR" to="M-FILE-OPS" relation="calls safe_remove, get_path_size_kb, bytes_to_human" />
+    <CrossLink from="M-AI-CLIENT" to="M-AI-CONFIG" relation="reads endpoint, model, api_key, params" />
+    <CrossLink from="M-AI-COLLECTOR" to="M-BASE" relation="uses bytes_to_human_kb, detect_architecture" />
+    <CrossLink from="M-AI-COLLECTOR-EXT" to="M-AI-COLLECTOR" relation="uses _fast_du_sk, _fast_du_sk_bg, _collect_section" />
+    <CrossLink from="M-FILE-OPS" to="M-APP-PROTECTION" relation="calls should_protect_path" />
+
+  </Project>
+</KnowledgeGraph>
