@@ -679,7 +679,11 @@ install_files() {
     fi
 
     if [[ "$source_dir_abs" != "$install_dir_abs" ]]; then
-        maybe_sudo sed -i '' "s|SCRIPT_DIR=.*|SCRIPT_DIR=\"$CONFIG_DIR\"|" "$INSTALL_DIR/mole"
+        local sed_inplace=(-i '')
+        if sed --version 2>/dev/null | grep -q GNU; then
+            sed_inplace=(-i)
+        fi
+        maybe_sudo sed "${sed_inplace[@]}" "s|SCRIPT_DIR=.*|SCRIPT_DIR=\"$CONFIG_DIR\"|" "$INSTALL_DIR/mole"
     fi
 
     if ! download_binary "analyze"; then
