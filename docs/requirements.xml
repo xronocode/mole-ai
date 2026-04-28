@@ -1,0 +1,94 @@
+<RequirementsAnalysis VERSION="1.0.0">
+  <Project>
+    <name>Mole</name>
+    <annotation>macOS system maintenance CLI with AI-powered advisor. Disk cleanup, optimization, health checks, uninstall management, and LLM-driven interactive system analysis with risk-tagged cleanup recommendations.</annotation>
+    <keywords>macOS, system-maintenance, disk-cleanup, optimization, bash, cli, ai-advisor, llm-integration, openai-compatible, interactive-menu, safe-deletion</keywords>
+  </Project>
+
+  <Actors>
+    <actor-User>macOS user running mole commands from Terminal. Interactive selection of AI recommendations.</actor-User>
+    <actor-LLM>External OpenAI-compatible LLM endpoint. Receives system data, returns structured analysis and cleanup plan.</actor-LLM>
+    <actor-System>macOS filesystem, system APIs (sysctl, vm_stat, df, du). Read-only data source for collector.</actor-System>
+  </Actors>
+
+  <UseCases>
+    <UC-001>
+      <Actor>User</Actor>
+      <Action>Run `mo advisor` to get AI-powered system analysis</Action>
+      <Goal>Understand what is consuming disk space and receive actionable cleanup recommendations</Goal>
+      <Preconditions>AI endpoint configured via `mo advisor --setup`. Terminal with interactive TTY.</Preconditions>
+      <AcceptanceCriteria>
+        1. System data is collected (disk, memory, CPU, caches, containers, build artifacts, Docker, Homebrew, Xcode)
+        2. Data is sent to configured LLM endpoint
+        3. LLM returns structured report: disk usage summary, items not recommended for deletion, low-risk items, medium/high-risk items
+        4. Report is rendered as formatted terminal output
+        5. User sees interactive [x]/[ ] selection menu with all recommended actions
+        6. User confirms with typed "yes"
+        7. Selected items are deleted via safe_remove pipeline
+        8. Execution summary shows items removed, space recovered, items skipped (with reason: protected / permission denied / error)
+      </AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-ADVISE</RelatedFlows>
+    </UC-001>
+
+    <UC-002>
+      <Actor>User</Actor>
+      <Action>Configure AI endpoint via `mo advisor --setup`</Action>
+      <Goal>Set up LLM connection (endpoint URL, model name, API key, parameters)</Goal>
+      <Preconditions>None</Preconditions>
+      <AcceptanceCriteria>Configuration saved to ~/.config/mole/ai.conf. Values validated on input. Connection test optional.</AcceptanceCriteria>
+      <Priority>high</Priority>
+      <RelatedFlows>DF-CONFIG</RelatedFlows>
+    </UC-002>
+
+    <UC-003>
+      <Actor>User</Actor>
+      <Action>Run `mo advisor --dry-run` to inspect collected data</Action>
+      <Goal>See what system data would be sent to the LLM without making an API call</Goal>
+      <Preconditions>None</Preconditions>
+      <AcceptanceCriteria>All collector sections displayed. No API call made. No deletions proposed.</AcceptanceCriteria>
+      <Priority>medium</Priority>
+    </UC-003>
+
+    <UC-004>
+      <Actor>User</Actor>
+      <Action>Use existing mole commands (clean, optimize, check, manage, uninstall)</Action>
+      <Goal>Perform non-AI system maintenance operations</Goal>
+      <Preconditions>None</Preconditions>
+      <AcceptanceCriteria>Operations execute safely with protected-path validation, sudo when needed, user confirmation for destructive actions.</AcceptanceCriteria>
+      <Priority>high</Priority>
+    </UC-004>
+  </UseCases>
+
+  <NonGoals>
+    <item-1>No background daemon or scheduled cleanup in v1.</item-1>
+    <item-2>No GUI — CLI and interactive terminal only.</item-2>
+    <item-3>No model training or fine-tuning — uses external LLM APIs as-is.</item-3>
+    <item-4>No automatic deletion without user confirmation — always requires interactive approval.</item-4>
+    <item-5>No system-level operations requiring SIP disable.</item-5>
+  </NonGoals>
+
+  <Constraints>
+    <constraint-1>Must run on macOS 13+ (Ventura and later), Apple Silicon and Intel.</constraint-1>
+    <constraint-2>Bash only — no compiled dependencies, only standard macOS CLI tools + python3 for JSON parsing.</constraint-2>
+    <constraint-3>API key must never appear in logs or terminal output.</constraint-3>
+    <constraint-4>Protected paths (system directories, critical user data) must never be deleted, even if LLM recommends them.</constraint-4>
+    <constraint-5>Must work with any OpenAI-compatible endpoint (Ollama, vLLM, LM Studio, OpenRouter, etc.).</constraint-5>
+  </Constraints>
+
+  <Risks>
+    <risk-1>LLM may recommend paths that do not exist or are protected. Executor must validate every path before deletion.</risk-1>
+    <risk-2>du -sk on large/protected directories can hang indefinitely. Collector must use timeouts.</risk-2>
+    <risk-3>set -e in sourced files (common.sh chain) can kill the advisor subprocess. Must be handled with set +e and subprocess isolation.</risk-3>
+    <risk-4>LLM response format may vary between models. JSON extraction must be robust with fallbacks.</risk-4>
+    <risk-5>SIP-protected directories (Library/Caches root, Application Support) return partial or zero sizes from du.</risk-5>
+    <risk-6>Reasoning models (e.g. glm-5.1) output analysis in reasoning_content delta field, not content. Client must parse both. max_tokens=16384 needed to avoid truncation before content generation.</risk-6>
+    <risk-7>Permission denied during rm -rf on cache files (npm _cacache) causes misleading "Skipped (protected)" message in executor. safe_remove needs specific exit code for permission denied.</risk-7>
+  </Risks>
+
+  <OpenQuestions>
+    <question-1 RESOLUTION="deferred">Should the advisor support multiple LLM profiles (e.g. fast-local model vs powerful-cloud model)? — Not in v1. Single config via ai.conf is sufficient. Can revisit if users request it.</question-1>
+    <question-2 RESOLUTION="implemented">Should the advisor remember previous recommendations and skip already-reviewed items? — Implemented via report cache: ~/.config/mole/advisor/last_report.md, last_plan.json, last_timestamp. Users can re-run and compare.</question-2>
+    <question-3 RESOLUTION="implemented">Should there be a non-interactive mode (e.g. `mo advisor --auto-safe`) that auto-applies only SAFE items? — Implemented: --auto-safe flag auto-selects SAFE items and skips menu. Also --analyze for report-only.</question-3>
+  </OpenQuestions>
+</RequirementsAnalysis>

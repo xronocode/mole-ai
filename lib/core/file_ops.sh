@@ -14,6 +14,7 @@ readonly MOLE_FILE_OPS_LOADED=1
 readonly MOLE_ERR_SIP_PROTECTED=10
 readonly MOLE_ERR_AUTH_FAILED=11
 readonly MOLE_ERR_READONLY_FS=12
+readonly MOLE_ERR_PERMISSION_DENIED=13
 
 # Ensure dependencies are loaded
 _MOLE_CORE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -269,6 +270,7 @@ safe_remove() {
             export MOLE_PERMISSION_DENIED_COUNT
             debug_log "Permission denied: $path, may need Full Disk Access"
             log_operation "${MOLE_CURRENT_COMMAND:-clean}" "FAILED" "$path" "permission denied"
+            return "$MOLE_ERR_PERMISSION_DENIED"
         else
             [[ "$silent" != "true" ]] && log_error "Failed to remove: $path"
             log_operation "${MOLE_CURRENT_COMMAND:-clean}" "FAILED" "$path" "error"
