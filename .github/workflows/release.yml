@@ -104,7 +104,7 @@ jobs:
 
           git clone "https://x-access-token:${PAT_TOKEN}@github.com/xronocode/homebrew-mole-ai.git" /tmp/tap
 
-          cat > /tmp/tap/Formula/mole-ai.rb << 'FORMULA'
+          cat > /tmp/tap/Formula/mole-ai.rb << FORMULA
           class MoleAi < Formula
             desc "AI-enhanced macOS system maintenance CLI"
             homepage "https://github.com/xronocode/mole-ai"
@@ -122,7 +122,7 @@ jobs:
 
             def caveats
               <<~EOS
-                Run `mo advisor --setup` to configure the AI endpoint.
+                Run \`mo advisor --setup\` to configure the AI endpoint.
                 Works with Ollama, OpenRouter, vLLM, LM Studio, etc.
               EOS
             end
