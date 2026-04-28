@@ -5,3 +5,5 @@ disable=SC2034  # Unused variables
 disable=SC2059  # Don't use variables in printf format
 disable=SC1091  # Not following sourced files
 disable=SC2038  # Use find -print0 | xargs -0 pattern
+disable=SC2097  # This assignment is only seen by the targeting command (bats HOME=)
+disable=SC2098  # This expansion will not see the mentioned assignment (bats HOME=)

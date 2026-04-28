@@ -55,8 +55,8 @@ Content-Length: $body_len
 $response_body
 HTTP
 
-    socat TCP-LISTEN:$port,fork,reuseaddr EXEC:"cat $response_file" &>/dev/null &
-    echo $!
+    socat TCP-LISTEN:"$port",fork,reuseaddr EXEC:"cat $response_file" &>/dev/null &
+    echo "$!"
 }
 
 @test "_build_messages_json produces valid JSON array" {
