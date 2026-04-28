@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - AI Advisor Command
+# Mole-AI - AI Advisor Command
 # Analyzes system state using a connected LLM, presents interactive
 # recommendations menu, and executes confirmed deletions via safe ops.
 
@@ -492,7 +492,7 @@ _run_analysis() {
 
     clear
 
-    echo -e "  ${PURPLE_BOLD}${ICON_ARROW} Mole AI Advisor${NC}"
+    echo -e "  ${PURPLE_BOLD}${ICON_ARROW} Mole-AI Advisor${NC}"
     echo -e "  ${GRAY}Read-only analysis. You decide what to delete.${NC}"
     echo ""
     echo -e "  ${GRAY}Model:${NC} $(ai_config_get_model)  ${GRAY}Endpoint:${NC} $(ai_config_get_endpoint)"
@@ -626,7 +626,7 @@ main() {
     fi
 
     if $dry_run; then
-        echo -e "${PURPLE_BOLD}${ICON_ARROW} Mole AI Advisor — Dry Run${NC}"
+        echo -e "${PURPLE_BOLD}${ICON_ARROW} Mole-AI Advisor — Dry Run${NC}"
         echo ""
         _step "Collecting system data..."
         local data_tmp="/tmp/mole_advisor_data_$$.txt"

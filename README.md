@@ -1,15 +1,12 @@
 <div align="center">
-  <h1>Mole</h1>
-  <p><em>Deep clean and optimize your Mac.</em></p>
+  <h1>Mole-AI</h1>
+  <p><em>Deep clean and optimize your Mac. AI-powered system advisor.</em></p>
 </div>
 
 <p align="center">
-  <a href="https://github.com/tw93/mole/stargazers"><img src="https://img.shields.io/github/stars/tw93/mole?style=flat-square" alt="Stars"></a>
-  <a href="https://github.com/tw93/mole/releases"><img src="https://img.shields.io/github/v/tag/tw93/mole?label=version&style=flat-square" alt="Version"></a>
+  <a href="https://github.com/xronocode/mole-ai/releases"><img src="https://img.shields.io/github/v/tag/xronocode/mole-ai?label=version&style=flat-square" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
-  <a href="https://github.com/tw93/mole/commits"><img src="https://img.shields.io/github/commit-activity/m/tw93/mole?style=flat-square" alt="Commits"></a>
-  <a href="https://twitter.com/HiTw93"><img src="https://img.shields.io/badge/follow-Tw93-red?style=flat-square&logo=Twitter" alt="Twitter"></a>
-  <a href="https://t.me/+GclQS9ZnxyI2ODQ1"><img src="https://img.shields.io/badge/chat-Telegram-blueviolet?style=flat-square&logo=Telegram" alt="Telegram"></a>
+  <a href="https://github.com/tw93/mole"><img src="https://img.shields.io/badge/based%20on-tw93%2Fmole-blue?style=flat-square" alt="Based on Mole"></a>
 </p>
 
 <p align="center">
@@ -23,41 +20,33 @@
 - **Smart uninstaller**: Removes apps plus launch agents, preferences, and **hidden remnants**
 - **Disk insights**: Visualizes usage, finds large files, **rebuilds caches**, and refreshes system services
 - **Live monitoring**: Shows real-time CPU, GPU, memory, disk, and network stats
+- **AI system advisor**: Analyzes your system via a connected LLM and presents interactive, risk-tagged cleanup recommendations
 
 ## Quick Start
 
-**Install via Homebrew**
+**Install via script**
 
 ```bash
-brew install mole
+curl -fsSL https://raw.githubusercontent.com/xronocode/mole-ai/main/install.sh | bash
 ```
 
-**Or via script**
-
-```bash
-# Optional args: -s latest for main branch code, -s 1.17.0 for specific version
-curl -fsSL https://raw.githubusercontent.com/tw93/mole/main/install.sh | bash
-```
-
-> Note: Mole is built for macOS. An experimental Windows version is available in the [windows branch](https://github.com/tw93/Mole/tree/windows) for early adopters.
+> Note: Mole-AI is built for macOS. Based on [tw93/Mole](https://github.com/tw93/mole).
 
 **Run**
 
 ```bash
 mo                           # Interactive menu
+mo advisor                   # AI-powered system analysis
+mo advisor --setup           # Configure AI endpoint (Ollama, OpenRouter, etc.)
+mo advisor --dry-run         # Preview collected system data
 mo clean                     # Deep cleanup + already-uninstalled app leftovers
 mo uninstall                 # Remove installed apps + their leftovers
 mo optimize                  # Refresh caches & services
-mo analyze                   # Visual disk explorer (or 'mo analyse')
+mo analyze                   # Visual disk explorer
 mo status                    # Live system health dashboard
 mo purge                     # Clean project build artifacts
-mo installer                 # Find and remove installer files
-
-mo touchid                   # Configure Touch ID for sudo
-mo completion                # Set up shell tab completion
-mo update                    # Update Mole
-mo update --nightly          # Update to latest unreleased main build, script install only
-mo remove                    # Remove Mole from system
+mo update                    # Update Mole-AI
+mo remove                    # Remove Mole-AI from system
 mo --help                    # Show help
 mo --version                 # Show installed version
 ```
@@ -95,6 +84,43 @@ Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for
 - Navigation: Mole supports arrow keys and Vim bindings `h/j/k/l`.
 
 ## Features in Detail
+
+### AI System Advisor
+
+Connects to any OpenAI-compatible LLM (Ollama, OpenRouter, vLLM, LM Studio) to analyze your system and recommend cleanup actions.
+
+```bash
+$ mo advisor --setup        # Configure endpoint (URL, model, API key)
+$ mo advisor                 # Full analysis pipeline
+
+  Collect → Analyze → Report → Select → Execute
+
+  === DISK USAGE SUMMARY ===
+  | Path                              | Size  | Category        |
+  |-----------------------------------|-------|-----------------|
+  | ~/Library/Developer/Xcode         | 23GB  | Developer tools |
+  | ~/Library/Caches                  | 12GB  | User caches     |
+  | ~/.npm/_cacache                   | 2.1GB | Package cache   |
+
+  Low Risk (Recommended):
+    ✓ NPM cache (2.1GB) — fully regenerable
+    ✓ User logs (60MB) — safe to clear
+
+  Medium/High Risk:
+    ⚠ Downloads (1.4GB) — user files
+    ⚠ ChatGPT cache (177MB) — may need re-download
+
+  Select items to clean [F: filter risk, Enter: confirm]:
+  [x] Clear NPM cache
+  [x] Clear user logs
+  [ ] Downloads files
+
+  ✓ Removed 2.2GB
+```
+
+`mo advisor --dry-run` shows collected system data without calling the LLM.
+`mo advisor --auto-safe` auto-selects SAFE items and skips the menu.
+`mo advisor --analyze` generates a report without prompting for deletion.
 
 ### Deep System Cleanup
 
@@ -316,7 +342,7 @@ Select Installers to Remove - 3.8GB (5 selected)
 Launch Mole commands from Raycast or Alfred:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tw93/Mole/main/scripts/setup-quick-launchers.sh | bash
+curl -fsSL https://raw.githubusercontent.com/xronocode/mole-ai/main/scripts/setup-quick-launchers.sh | bash
 ```
 
 Adds 5 commands: `Mole Clean`, `Mole Uninstall`, `Mole Optimize`, `Mole Analyze`, `Mole Status`.
@@ -338,6 +364,38 @@ After running the script, complete these steps in Raycast:
 
 Mole auto-detects your terminal app. iTerm2 has known compatibility issues. We highly recommend [Kaku](https://github.com/tw93/Kaku). Other good options are Alacritty, kitty, WezTerm, Ghostty, and Warp. To override, set `MO_LAUNCHER_APP=<name>`.
 
+## AI Advisor Setup
+
+Mole-AI's advisor works with any OpenAI-compatible endpoint.
+
+### Local (Ollama)
+
+```bash
+# Install Ollama, then pull a model
+ollama pull llama3
+
+# Configure
+mo advisor --setup
+# Endpoint: http://localhost:11434/v1/chat/completions
+# Model: llama3
+# API key: (leave empty)
+```
+
+### Cloud (OpenRouter, etc.)
+
+```bash
+mo advisor --setup
+# Endpoint: https://openrouter.ai/api/v1/chat/completions
+# Model: anthropic/claude-3.5-sonnet
+# API key: sk-or-v1-...
+```
+
+Config stored in `~/.config/mole/ai.conf`. API key never logged.
+
+## Acknowledgments
+
+Mole-AI is based on [tw93/Mole](https://github.com/tw93/mole) — an excellent macOS system maintenance CLI.
+
 ## Community Love
 
 Thanks to everyone who helped build Mole. Go follow them. ❤️
@@ -353,12 +411,9 @@ Real feedback from users who shared Mole on X.
 
 ## Support
 
-- If Mole helped you, [share it](https://twitter.com/intent/tweet?url=https://github.com/tw93/Mole&text=Mole%20-%20Deep%20clean%20and%20optimize%20your%20Mac.) with friends or give it a star.
-- Got ideas or bugs? Open an issue or PR, feel free to contribute your best AI model.
-- I have two cats, TangYuan and Coke. If you think Mole delights your life, you can feed them <a href="https://miaoyan.app/cats.html?name=Mole" target="_blank">canned food 🥩</a>.
-
-<a href="https://miaoyan.app/cats.html?name=Mole"><img src="https://cdn.jsdelivr.net/gh/tw93/MiaoYan@main/assets/sponsors.svg" width="1000" loading="lazy" /></a>
+- If Mole-AI helped you, give it a star.
+- Got ideas or bugs? Open an issue or PR.
 
 ## License
 
-MIT License. Feel free to use Mole and contribute.
+MIT License. Based on [tw93/Mole](https://github.com/tw93/mole) (MIT).

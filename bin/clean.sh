@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Clean command.
+# Mole-AI - Clean command.
 # Runs cleanup modules with optional sudo.
 # Supports dry-run and whitelist.
 

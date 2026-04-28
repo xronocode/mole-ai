@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Touch ID command.
+# Mole-AI - Touch ID command.
 # Configures sudo with Touch ID.
 # Guided toggle with safety checks.
 

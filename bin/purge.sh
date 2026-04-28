@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Purge command.
+# Mole-AI - Purge command.
 # Cleans heavy project build artifacts.
 # Interactive selection by project.
 

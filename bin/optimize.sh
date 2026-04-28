@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Optimize command.
+# Mole-AI - Optimize command.
 # Runs system maintenance checks and fixes.
 # Supports dry-run where applicable.
 

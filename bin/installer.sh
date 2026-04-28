@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Installer command
+# Mole-AI - Installer command
 # Find and remove installer files - .dmg, .pkg, .mpkg, .iso, .xip, .zip
 
 set -euo pipefail

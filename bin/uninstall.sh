@@ -1,5 +1,5 @@
 #!/bin/bash
-# Mole - Uninstall command.
+# Mole-AI - Uninstall command.
 # Interactive app uninstaller.
 # Removes app files and leftovers.
 
