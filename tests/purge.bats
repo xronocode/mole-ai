@@ -323,7 +323,7 @@ EOF
 set -euo pipefail
 source "$PROJECT_ROOT/lib/clean/project.sh"
 save_discovered_paths "$HOME/Projects"
-grep -q "^~/" "$HOME/.config/mole/purge_paths"
+	grep -q "^~/" "$HOME/.config/mole-ai/purge_paths"
 EOF
 
 	[ "$status" -eq 0 ]

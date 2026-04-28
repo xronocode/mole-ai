@@ -23,7 +23,7 @@ teardown_file() {
 setup() {
     rm -rf "$HOME/.config"
     mkdir -p "$HOME"
-    WHITELIST_PATH="$HOME/.config/mole/whitelist"
+    WHITELIST_PATH="$HOME/.config/mole-ai/whitelist"
 }
 
 @test "patterns_equivalent treats paths with tilde expansion as equal" {
@@ -62,7 +62,7 @@ setup() {
 
 @test "load_whitelist falls back to defaults when config missing" {
     rm -f "$WHITELIST_PATH"
-    HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/manage/whitelist.sh'; rm -f \"\$HOME/.config/mole/whitelist\"; load_whitelist; printf '%s\n' \"\${CURRENT_WHITELIST_PATTERNS[@]}\"" > "$HOME/current_whitelist.txt"
+    HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/manage/whitelist.sh'; rm -f \"\$HOME/.config/mole-ai/whitelist\"; load_whitelist; printf '%s\n' \"\${CURRENT_WHITELIST_PATTERNS[@]}\"" > "$HOME/current_whitelist.txt"
     HOME="$HOME" bash --noprofile --norc -c "source '$PROJECT_ROOT/lib/manage/whitelist.sh'; printf '%s\n' \"\${DEFAULT_WHITELIST_PATTERNS[@]}\"" > "$HOME/default_whitelist.txt"
 
     current=()
@@ -97,7 +97,7 @@ setup() {
 }
 
 @test "mo clean --whitelist persists selections" {
-    whitelist_file="$HOME/.config/mole/whitelist"
+    whitelist_file="$HOME/.config/mole-ai/whitelist"
     mkdir -p "$(dirname "$whitelist_file")"
 
     run bash --noprofile --norc -c "cd '$PROJECT_ROOT'; printf \$'\\n' | HOME='$HOME' ./mo clean --whitelist"
