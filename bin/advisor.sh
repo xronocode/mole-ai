@@ -88,8 +88,8 @@ ${GREEN}Workflow:${NC}
   4. ${CYAN}Enter${NC} to confirm, then type ${GREEN}yes${NC} to execute
 
 ${GREEN}Configuration:${NC}
-  Settings are stored in ${GRAY}~/.config/mole/ai.conf${NC}
-  Reports cached in ${GRAY}~/.config/mole/advisor/${NC}
+  Settings are stored in ${GRAY}~/.config/mole-ai/ai.conf${NC}
+  Reports cached in ${GRAY}~/.config/mole-ai/advisor/${NC}
 EOF
 }
 
@@ -136,7 +136,7 @@ _call_ai_with_retry() {
     return 1
 }
 
-_ADVISOR_CACHE_DIR="$HOME/.config/mole/advisor"
+_ADVISOR_CACHE_DIR="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/advisor"
 
 _cache_report() {
     local report_md="$1"

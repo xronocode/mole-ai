@@ -2,7 +2,7 @@
 # FILE: lib/ai/config.sh
 # VERSION: 1.0.0
 # START_MODULE_CONTRACT
-#   PURPOSE: Manage AI advisor configuration stored in ~/.config/mole/ai.conf
+#   PURPOSE: Manage AI advisor configuration stored in ~/.config/mole-ai/ai.conf
 #   SCOPE: Read/write config values, interactive setup wizard, display config
 #   DEPENDS: lib/core/base.sh
 #   LINKS: M-AI-CONFIG
