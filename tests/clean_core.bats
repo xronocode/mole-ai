@@ -28,7 +28,7 @@ setup() {
     export TERM="xterm-256color"
     rm -rf "${HOME:?}"/*
     rm -rf "$HOME/Library" "$HOME/.config"
-    mkdir -p "$HOME/Library/Caches" "$HOME/.config/mole"
+    mkdir -p "$HOME/Library/Caches" "$HOME/.config/mole-ai"
     unset TEST_MOCK_BIN
 }
 
@@ -160,7 +160,7 @@ PLIST
     run env HOME="$HOME" MOLE_TEST_MODE=0 "$PROJECT_ROOT/mole" clean --dry-run
     [ "$status" -eq 0 ]
 
-    run grep -c "Application Support/Code/CachedData" "$HOME/.config/mole/clean-list.txt"
+    run grep -c "Application Support/Code/CachedData" "$HOME/.config/mole-ai/clean-list.txt"
     [ "$status" -eq 0 ]
     [ "$output" -eq 1 ]
 }
@@ -169,7 +169,7 @@ PLIST
     mkdir -p "$HOME/Library/Caches/WhitelistedApp"
     echo "keep me" > "$HOME/Library/Caches/WhitelistedApp/data.tmp"
 
-    cat > "$HOME/.config/mole/whitelist" << EOF
+    cat > "$HOME/.config/mole-ai/whitelist" << EOF
 $HOME/Library/Caches/WhitelistedApp*
 EOF
 
@@ -183,7 +183,7 @@ EOF
     mkdir -p "$HOME/Library/Caches/WhitelistedApp"
     echo "keep me" > "$HOME/Library/Caches/WhitelistedApp/data.tmp"
 
-    cat > "$HOME/.config/mole/whitelist" << 'EOF'
+    cat > "$HOME/.config/mole-ai/whitelist" << 'EOF'
 $HOME/Library/Caches/WhitelistedApp*
 EOF
 
@@ -207,7 +207,7 @@ EOF
     mkdir -p "$HOME/Documents"
     touch "$HOME/Documents/.DS_Store"
 
-    cat > "$HOME/.config/mole/whitelist" << EOF
+    cat > "$HOME/.config/mole-ai/whitelist" << EOF
 FINDER_METADATA_SENTINEL
 EOF
 

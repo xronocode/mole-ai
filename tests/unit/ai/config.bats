@@ -33,9 +33,9 @@ setup() {
 }
 
 @test "ai_config_get returns configured value" {
-    mkdir -p "$HOME/.config/mole"
-    echo "endpoint=http://my-server:8080/v1" > "$HOME/.config/mole/ai.conf"
-    echo "model=my-model" >> "$HOME/.config/mole/ai.conf"
+    mkdir -p "$HOME/.config/mole-ai"
+    echo "endpoint=http://my-server:8080/v1" > "$HOME/.config/mole-ai/ai.conf"
+    echo "model=my-model" >> "$HOME/.config/mole-ai/ai.conf"
 
     result="$(HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/core/common.sh'
@@ -46,8 +46,8 @@ setup() {
 }
 
 @test "ai_config_is_configured returns true when endpoint and model set" {
-    mkdir -p "$HOME/.config/mole"
-    printf 'endpoint=http://localhost:11434/v1\nmodel=qwen3:8b\n' > "$HOME/.config/mole/ai.conf"
+    mkdir -p "$HOME/.config/mole-ai"
+    printf 'endpoint=http://localhost:11434/v1\nmodel=qwen3:8b\n' > "$HOME/.config/mole-ai/ai.conf"
 
     result="$(HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/core/common.sh'
@@ -81,8 +81,8 @@ setup() {
 }
 
 @test "ai_config_set updates existing key" {
-    mkdir -p "$HOME/.config/mole"
-    printf 'endpoint=http://old/v1\nmodel=old-model\n' > "$HOME/.config/mole/ai.conf"
+    mkdir -p "$HOME/.config/mole-ai"
+    printf 'endpoint=http://old/v1\nmodel=old-model\n' > "$HOME/.config/mole-ai/ai.conf"
 
     result="$(HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/core/common.sh'
@@ -130,8 +130,8 @@ setup() {
 }
 
 @test "ai_config_show prints config when file exists" {
-    mkdir -p "$HOME/.config/mole"
-    printf 'endpoint=http://my/v1\nmodel=my-model\n' > "$HOME/.config/mole/ai.conf"
+    mkdir -p "$HOME/.config/mole-ai"
+    printf 'endpoint=http://my/v1\nmodel=my-model\n' > "$HOME/.config/mole-ai/ai.conf"
 
     result="$(HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/core/common.sh'
@@ -143,8 +143,8 @@ setup() {
 }
 
 @test "api key is masked in show output" {
-    mkdir -p "$HOME/.config/mole"
-    printf 'endpoint=http://my/v1\nmodel=m\napi_key=sk-1234567890abcdef\n' > "$HOME/.config/mole/ai.conf"
+    mkdir -p "$HOME/.config/mole-ai"
+    printf 'endpoint=http://my/v1\nmodel=m\napi_key=sk-1234567890abcdef\n' > "$HOME/.config/mole-ai/ai.conf"
 
     result="$(HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/core/common.sh'

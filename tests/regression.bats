@@ -4,7 +4,7 @@ setup() {
     PROJECT_ROOT="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
     export PROJECT_ROOT
     export HOME="$BATS_TEST_TMPDIR/home"
-    mkdir -p "$HOME/.config/mole"
+    mkdir -p "$HOME/.config/mole-ai"
 }
 
 

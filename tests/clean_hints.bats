@@ -20,7 +20,7 @@ teardown_file() {
 
 setup() {
     rm -rf "${HOME:?}"/*
-    mkdir -p "$HOME/.config/mole"
+    mkdir -p "$HOME/.config/mole-ai"
 }
 
 teardown() {
@@ -31,7 +31,7 @@ teardown() {
     local root="$HOME/hints-root"
     mkdir -p "$root/proj/node_modules" "$root/proj/vendor" "$root/proj/bin"
     touch "$root/proj/package.json"
-    printf '%s\n' "$root" > "$HOME/.config/mole/purge_paths"
+    printf '%s\n' "$root" > "$HOME/.config/mole-ai/purge_paths"
 
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc << 'EOT1'
 set -euo pipefail

@@ -13,7 +13,8 @@ readonly MOLE_BASE_LOADED=1
 # ============================================================================
 # Config Directory
 # ============================================================================
-readonly MOLE_CONFIG_DIR="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}"
+MOLE_CONFIG_DIR="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}"
+export MOLE_CONFIG_DIR
 
 # ============================================================================
 # Color Definitions

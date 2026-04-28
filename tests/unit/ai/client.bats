@@ -21,7 +21,7 @@ teardown_file() {
 
 setup() {
     rm -rf "$HOME/.config"
-    mkdir -p "$HOME/.config/mole"
+    mkdir -p "$HOME/.config/mole-ai"
 }
 
 _mock_api_server() {
@@ -127,7 +127,7 @@ assert 'hello' in data[1]['content']
 
 @test "ai_client_chat returns content from mocked 200 response" {
     local port=19876
-    printf 'endpoint=http://127.0.0.1:%d/v1\nmodel=test-model\nmax_tokens=100\ntemperature=0.1\ntimeout=5\n' "$port" > "$HOME/.config/mole/ai.conf"
+    printf 'endpoint=http://127.0.0.1:%d/v1\nmodel=test-model\nmax_tokens=100\ntemperature=0.1\ntimeout=5\n' "$port" > "$HOME/.config/mole-ai/ai.conf"
 
     python3 -c "
 import http.server, json, threading, sys
@@ -167,7 +167,7 @@ import time; time.sleep(30)
 
 @test "ai_client_chat falls back to reasoning_content when content is empty" {
     local port=19877
-    printf 'endpoint=http://127.0.0.1:%d/v1\nmodel=test-model\nmax_tokens=100\ntemperature=0.1\ntimeout=5\n' "$port" > "$HOME/.config/mole/ai.conf"
+    printf 'endpoint=http://127.0.0.1:%d/v1\nmodel=test-model\nmax_tokens=100\ntemperature=0.1\ntimeout=5\n' "$port" > "$HOME/.config/mole-ai/ai.conf"
 
     python3 -c "
 import http.server, json, threading
@@ -207,7 +207,7 @@ import time; time.sleep(30)
 
 @test "ai_client_chat returns error on HTTP 401" {
     local port=19878
-    printf 'endpoint=http://127.0.0.1:%d/v1\nmodel=test-model\napi_key=bad-key\nmax_tokens=100\ntemperature=0.1\ntimeout=5\n' "$port" > "$HOME/.config/mole/ai.conf"
+    printf 'endpoint=http://127.0.0.1:%d/v1\nmodel=test-model\napi_key=bad-key\nmax_tokens=100\ntemperature=0.1\ntimeout=5\n' "$port" > "$HOME/.config/mole-ai/ai.conf"
 
     python3 -c "
 import http.server, json, threading
@@ -243,7 +243,7 @@ import time; time.sleep(30)
 }
 
 @test "ai_client_chat returns error on connection refused" {
-    printf 'endpoint=http://127.0.0.1:19999/v1\nmodel=test\nmax_tokens=10\ntemperature=0.1\ntimeout=2\n' > "$HOME/.config/mole/ai.conf"
+    printf 'endpoint=http://127.0.0.1:19999/v1\nmodel=test\nmax_tokens=10\ntemperature=0.1\ntimeout=2\n' > "$HOME/.config/mole-ai/ai.conf"
 
     run bash --noprofile --norc -c "
         export HOME='$HOME'
@@ -257,7 +257,7 @@ import time; time.sleep(30)
 }
 
 @test "ai_client_stream_chat returns error on connection refused" {
-    printf 'endpoint=http://127.0.0.1:19999/v1\nmodel=test\nmax_tokens=10\ntemperature=0.1\ntimeout=2\n' > "$HOME/.config/mole/ai.conf"
+    printf 'endpoint=http://127.0.0.1:19999/v1\nmodel=test\nmax_tokens=10\ntemperature=0.1\ntimeout=2\n' > "$HOME/.config/mole-ai/ai.conf"
 
     run bash --noprofile --norc -c "
         export HOME='$HOME'

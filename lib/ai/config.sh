@@ -36,7 +36,7 @@ readonly MOLE_AI_CONFIG_LOADED=1
 _MOLE_AI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [[ -z "${MOLE_BASE_LOADED:-}" ]] && source "$_MOLE_AI_DIR/../core/base.sh"
 
-readonly MOLE_AI_CONFIG_FILE="${MOLE_CONFIG_DIR:-$HOME/.config/mole}/ai.conf"
+readonly MOLE_AI_CONFIG_FILE="${MOLE_CONFIG_DIR}/ai.conf"
 
 readonly MOLE_AI_DEFAULT_ENDPOINT="http://localhost:11434/v1"
 readonly MOLE_AI_DEFAULT_MODEL="qwen3:8b"

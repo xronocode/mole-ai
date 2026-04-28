@@ -187,8 +187,8 @@ setup() {
 }
 
 @test "_call_ai_with_retry returns error after max retries when unconfigured" {
-    mkdir -p "$HOME/.config/mole"
-    printf 'endpoint=http://127.0.0.1:19998/v1\nmodel=test\nmax_tokens=10\ntemperature=0.1\ntimeout=2\n' > "$HOME/.config/mole/ai.conf"
+    mkdir -p "$HOME/.config/mole-ai"
+    printf 'endpoint=http://127.0.0.1:19998/v1\nmodel=test\nmax_tokens=10\ntemperature=0.1\ntimeout=2\n' > "$HOME/.config/mole-ai/ai.conf"
 
     run bash --noprofile --norc -c "
         export HOME='$HOME'

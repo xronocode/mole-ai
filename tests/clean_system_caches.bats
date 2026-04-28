@@ -297,7 +297,7 @@ EOF
 }
 
 @test "clean_project_caches scans configured roots instead of HOME" {
-    mkdir -p "$HOME/.config/mole"
+    mkdir -p "$HOME/.config/mole-ai"
     mkdir -p "$HOME/CustomProjects/app/.next/cache"
     touch "$HOME/CustomProjects/app/package.json"
 
@@ -325,7 +325,7 @@ EOF
 
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" PATH="$fake_bin:$PATH" bash --noprofile --norc <<'EOF'
 set -euo pipefail
-printf '%s\n' "$HOME/CustomProjects" > "$HOME/.config/mole/purge_paths"
+printf '%s\n' "$HOME/CustomProjects" > "$HOME/.config/mole-ai/purge_paths"
 source "$PROJECT_ROOT/lib/core/common.sh"
 source "$PROJECT_ROOT/lib/clean/caches.sh"
 run_with_timeout() { shift; "$@"; }
@@ -338,7 +338,7 @@ EOF
     run grep -q -- "-P $HOME " "$find_log"
     [ "$status" -eq 1 ]
 
-    rm -rf "$HOME/CustomProjects" "$HOME/.config/mole" "$fake_bin" "$find_log"
+    rm -rf "$HOME/CustomProjects" "$HOME/.config/mole-ai" "$fake_bin" "$find_log"
 }
 
 @test "clean_project_caches auto-detects top-level project containers" {
@@ -380,9 +380,9 @@ EOF
 @test "discover_project_cache_roots dedupes aliased roots by filesystem identity" {
     mkdir -p "$HOME/code/demo/.dart_tool"
     touch "$HOME/code/demo/pubspec.yaml"
-    mkdir -p "$HOME/.config/mole"
+    mkdir -p "$HOME/.config/mole-ai"
     ln -s "$HOME/code" "$HOME/Code"
-    printf '%s\n' "$HOME/Code" > "$HOME/.config/mole/purge_paths"
+    printf '%s\n' "$HOME/Code" > "$HOME/.config/mole-ai/purge_paths"
 
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc <<'EOF'
 set -euo pipefail
@@ -397,9 +397,9 @@ EOF
 }
 
 @test "clean_project_caches skips stalled root scans" {
-    mkdir -p "$HOME/.config/mole"
+    mkdir -p "$HOME/.config/mole-ai"
     mkdir -p "$HOME/SlowProjects/app"
-    printf '%s\n' "$HOME/SlowProjects" > "$HOME/.config/mole/purge_paths"
+    printf '%s\n' "$HOME/SlowProjects" > "$HOME/.config/mole-ai/purge_paths"
 
     local fake_bin
     fake_bin="$(mktemp -d "$HOME/find-timeout.XXXXXX")"
@@ -442,7 +442,7 @@ EOF
     [[ "$elapsed" =~ ^[0-9]+$ ]]
     (( elapsed < 5 ))
 
-    rm -rf "$HOME/.config/mole" "$HOME/SlowProjects" "$fake_bin"
+    rm -rf "$HOME/.config/mole-ai" "$HOME/SlowProjects" "$fake_bin"
 }
 
 @test "scan_project_cache_root prunes conda and site-packages" {

@@ -35,7 +35,7 @@ setup_file() {
 }
 
 teardown_file() {
-	rm -rf "$HOME/.config/mole"
+	rm -rf "$HOME/.config/mole-ai"
 	rm -rf "$HOME"
 	if [[ -n "${ORIGINAL_HOME:-}" ]]; then
 		export HOME="$ORIGINAL_HOME"
@@ -68,8 +68,8 @@ SCRIPT
 }
 
 setup() {
-	rm -rf "$HOME/.config/mole"
-	mkdir -p "$HOME/.config/mole"
+	rm -rf "$HOME/.config/mole-ai"
+	mkdir -p "$HOME/.config/mole-ai"
 }
 
 @test "mole --help prints command overview" {
@@ -88,8 +88,8 @@ setup() {
 
 @test "mole --version shows nightly channel metadata" {
 	expected_version="$(grep '^VERSION=' "$PROJECT_ROOT/mole" | head -1 | sed 's/VERSION=\"\(.*\)\"/\1/')"
-	mkdir -p "$HOME/.config/mole"
-	cat > "$HOME/.config/mole/install_channel" <<'EOF'
+	mkdir -p "$HOME/.config/mole-ai"
+	cat > "$HOME/.config/mole-ai/install_channel" <<'EOF'
 CHANNEL=nightly
 EOF
 
@@ -201,7 +201,7 @@ EOF
 }
 
 @test "mo clean --debug creates debug log file" {
-	mkdir -p "$HOME/.config/mole"
+	mkdir -p "$HOME/.config/mole-ai"
 	run env HOME="$HOME" TERM="xterm-256color" MOLE_TEST_MODE=1 MO_DEBUG=1 "$PROJECT_ROOT/mole" clean --dry-run
 	[ "$status" -eq 0 ]
 	MOLE_OUTPUT="$output"
@@ -216,7 +216,7 @@ EOF
 }
 
 @test "mo clean without debug does not show debug log path" {
-	mkdir -p "$HOME/.config/mole"
+	mkdir -p "$HOME/.config/mole-ai"
 	run env HOME="$HOME" TERM="xterm-256color" MOLE_TEST_MODE=1 MO_DEBUG=0 "$PROJECT_ROOT/mole" clean --dry-run
 	[ "$status" -eq 0 ]
 
@@ -224,7 +224,7 @@ EOF
 }
 
 @test "mo clean --debug logs system info" {
-	mkdir -p "$HOME/.config/mole"
+	mkdir -p "$HOME/.config/mole-ai"
 	run env HOME="$HOME" TERM="xterm-256color" MOLE_TEST_MODE=1 MO_DEBUG=1 "$PROJECT_ROOT/mole" clean --dry-run
 	[ "$status" -eq 0 ]
 
