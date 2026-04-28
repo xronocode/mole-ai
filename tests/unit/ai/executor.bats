@@ -50,7 +50,7 @@ teardown_file() {
         source '$PROJECT_ROOT/lib/core/ui.sh'
         source '$PROJECT_ROOT/lib/ai/renderer.sh'
         source '$PROJECT_ROOT/lib/ai/executor.sh'
-        _expand_glob_paths '$HOME/single_test/item.dat'
+        _expand_glob_paths \"\$HOME/single_test/item.dat\"
     ")"
 
     [[ "$result" == *"item.dat"* ]]

@@ -168,7 +168,7 @@ teardown_file() {
     result="$(HOME="$HOME" bash --noprofile --norc -c "
         source '$PROJECT_ROOT/lib/core/common.sh'
         source '$PROJECT_ROOT/lib/ai/collector.sh'
-        _fast_du_sk_bg '$HOME/du_bg_test' 5
+        _fast_du_sk_bg \"\$HOME/du_bg_test\" 5
     ")"
 
     [[ "$result" =~ ^[0-9]+$ ]]
