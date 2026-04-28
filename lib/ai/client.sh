@@ -48,9 +48,9 @@ sys.stdout.write(json.dumps(sys.stdin.read())[1:-1])
         local result=""
         for ((i = 0; i < ${#str}; i++)); do
             char="${str:$i:1}"
-            printf -v code '%d' "'$char"
+            printf -v code '%d' "'${char}"
             if [[ $code -lt 32 && $code -ne 9 && $code -ne 10 && $code -ne 13 ]]; then
-                result+="\\u$(printf '%04x' $code)"
+                result+="\\u$(printf '%04x' "$code")"
             else
                 result+="$char"
             fi

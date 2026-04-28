@@ -134,6 +134,7 @@ _render_report() {
 _extract_json_plan() {
     local response="$1"
     local json_block
+    # shellcheck disable=SC2016
     json_block=$(echo "$response" | sed -n '/^```json$/,/^```$/p' | sed '1d;$d')
     if [[ -z "$json_block" ]]; then
         json_block=$(echo "$response" | python3 -c "
@@ -401,9 +402,9 @@ _interactive_select() {
                 ;;
             SPACE)
                 if [[ "${_PLAN_SELECTED[$current]}" == "1" ]]; then
-                    _PLAN_SELECTED[$current]=0
+                    _PLAN_SELECTED[current]=0
                 else
-                    _PLAN_SELECTED[$current]=1
+                    _PLAN_SELECTED[current]=1
                 fi
                 ;;
             "CHAR:a" | "CHAR:A")
@@ -414,7 +415,7 @@ _interactive_select() {
                 local new_val=1
                 [[ $any_selected -eq 1 ]] && new_val=0
                 for ((idx = 0; idx < count; idx++)); do
-                    _PLAN_SELECTED[$idx]=$new_val
+                    _PLAN_SELECTED[idx]=$new_val
                 done
                 ;;
             "CHAR:f" | "CHAR:F")
