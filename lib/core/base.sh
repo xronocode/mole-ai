@@ -4,17 +4,17 @@
 
 set -euo pipefail
 
+# ============================================================================
+# Config Directory (always recomputed from current $HOME)
+# ============================================================================
+MOLE_CONFIG_DIR="$HOME/.config/mole-ai"
+export MOLE_CONFIG_DIR
+
 # Prevent multiple sourcing
 if [[ -n "${MOLE_BASE_LOADED:-}" ]]; then
     return 0
 fi
 readonly MOLE_BASE_LOADED=1
-
-# ============================================================================
-# Config Directory
-# ============================================================================
-MOLE_CONFIG_DIR="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}"
-export MOLE_CONFIG_DIR
 
 # ============================================================================
 # Color Definitions

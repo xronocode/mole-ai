@@ -27,7 +27,7 @@ PROTECT_FINDER_METADATA=false
 EXTERNAL_VOLUME_TARGET=""
 IS_M_SERIES=$([[ "$(uname -m)" == "arm64" ]] && echo "true" || echo "false")
 
-EXPORT_LIST_FILE="$HOME/.config/mole/clean-list.txt"
+EXPORT_LIST_FILE="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/clean-list.txt"
 CURRENT_SECTION=""
 readonly PROTECTED_SW_DOMAINS=(
     # Web editors
@@ -56,7 +56,7 @@ readonly PROTECTED_SW_DOMAINS=(
 
 declare -a WHITELIST_PATTERNS=()
 WHITELIST_WARNINGS=()
-if [[ -f "$HOME/.config/mole/whitelist" ]]; then
+if [[ -f "${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/whitelist" ]]; then
     while IFS= read -r line; do
         # shellcheck disable=SC2295
         line="${line#"${line%%[![:space:]]*}"}"
@@ -107,7 +107,7 @@ if [[ -f "$HOME/.config/mole/whitelist" ]]; then
         fi
         [[ "$duplicate" == "true" ]] && continue
         WHITELIST_PATTERNS+=("$line")
-    done < "$HOME/.config/mole/whitelist"
+    done < "${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/whitelist"
 else
     WHITELIST_PATTERNS=("${DEFAULT_WHITELIST_PATTERNS[@]}")
 fi
@@ -828,7 +828,7 @@ start_cleanup() {
 # Mole Cleanup Preview - $(date '+%Y-%m-%d %H:%M:%S')
 #
 # How to protect files:
-# 1. Copy any path below to ~/.config/mole/whitelist
+# 1. Copy any path below to ~/.config/mole-ai/whitelist
 # 2. Run: mo clean --whitelist
 #
 # Example:

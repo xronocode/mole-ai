@@ -138,7 +138,7 @@ mole_purge_resolve_path_case() {
 }
 
 mole_purge_read_paths_config() {
-    local config_file="${1:-$HOME/.config/mole/purge_paths}"
+    local config_file="${1:-${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/purge_paths}"
     [[ -f "$config_file" ]] || return 0
 
     local line

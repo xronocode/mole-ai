@@ -10,9 +10,9 @@ source "$_MOLE_MANAGE_DIR/../core/common.sh"
 source "$_MOLE_MANAGE_DIR/../ui/menu_simple.sh"
 
 # Config file paths
-readonly WHITELIST_CONFIG_CLEAN="$HOME/.config/mole/whitelist"
-readonly WHITELIST_CONFIG_OPTIMIZE="$HOME/.config/mole/whitelist_optimize"
-readonly WHITELIST_CONFIG_OPTIMIZE_LEGACY="$HOME/.config/mole/whitelist_checks"
+readonly WHITELIST_CONFIG_CLEAN="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/whitelist"
+readonly WHITELIST_CONFIG_OPTIMIZE="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/whitelist_optimize"
+readonly WHITELIST_CONFIG_OPTIMIZE_LEGACY="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/whitelist_checks"
 
 # Default whitelist patterns defined in lib/core/common.sh:
 # - DEFAULT_WHITELIST_PATTERNS

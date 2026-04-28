@@ -251,7 +251,7 @@ start_uninstall_metadata_refresh() {
             if [[ "${MO_DEBUG:-}" == "1" ]]; then
                 local ts
                 ts=$(date "+%Y-%m-%d %H:%M:%S" 2> /dev/null || echo "?")
-                echo "[$ts] DEBUG: [metadata-refresh] $*" >> "${HOME}/.config/mole/mole_debug_session.log" 2> /dev/null || true
+                echo "[$ts] DEBUG: [metadata-refresh] $*" >> "${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/mole_debug_session.log" 2> /dev/null || true
             fi
         }
 

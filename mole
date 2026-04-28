@@ -109,7 +109,7 @@ is_homebrew_install() {
 
 get_install_channel() {
     # Try user config dir first (matches install.sh behavior), fallback to SCRIPT_DIR
-    local channel_file="${MOLE_CONFIG_DIR:-$HOME/.config/mole}/install_channel"
+    local channel_file="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/install_channel"
     if [[ ! -f "$channel_file" ]]; then
         channel_file="$SCRIPT_DIR/install_channel"
     fi
@@ -125,7 +125,7 @@ get_install_channel() {
 
 get_install_commit() {
     # Try user config dir first (matches install.sh behavior), fallback to SCRIPT_DIR
-    local channel_file="${MOLE_CONFIG_DIR:-$HOME/.config/mole}/install_channel"
+    local channel_file="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/install_channel"
     if [[ ! -f "$channel_file" ]]; then
         channel_file="$SCRIPT_DIR/install_channel"
     fi
@@ -468,7 +468,7 @@ update_mole() {
     local update_tag="V${latest#V}"
     local config_dir="${MOLE_CONFIG_DIR:-$SCRIPT_DIR}"
     if [[ ! -f "$config_dir/lib/core/common.sh" ]]; then
-        config_dir="$HOME/.config/mole"
+        config_dir="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}"
     fi
 
     if [[ "$nightly_update" == "true" ]]; then
@@ -650,7 +650,7 @@ remove_mole() {
             done
         fi
         [[ -d "$HOME/.cache/mole" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.cache/mole${NC}"
-        [[ -d "$HOME/.config/mole" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.config/mole${NC}"
+        [[ -d "$HOME/.config/mole-ai" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/.config/mole-ai${NC}"
         [[ -d "$HOME/Library/Logs/mole" ]] && echo -e "  ${GRAY}${ICON_LIST} Would remove: $HOME/Library/Logs/mole${NC}"
 
         printf '\n%s\n\n' "${GREEN}${ICON_SUCCESS}${NC} Dry run complete, no changes made"
@@ -664,7 +664,7 @@ remove_mole() {
     for install in ${manual_installs[@]+"${manual_installs[@]}"} ${alias_installs[@]+"${alias_installs[@]}"}; do
         echo "  ${ICON_LIST} $install"
     done
-    echo "  ${ICON_LIST} ~/.config/mole"
+    echo "  ${ICON_LIST} ~/.config/mole-ai"
     echo "  ${ICON_LIST} ~/.cache/mole"
     echo "  ${ICON_LIST} ~/Library/Logs/mole"
     echo -ne "${PURPLE}${ICON_ARROW}${NC} Press ${GREEN}Enter${NC} to confirm, ${GRAY}ESC${NC} to cancel: "
@@ -736,8 +736,8 @@ remove_mole() {
     if [[ -d "$HOME/.cache/mole" ]]; then
         rm -rf "$HOME/.cache/mole" 2> /dev/null || true
     fi
-    if [[ -d "$HOME/.config/mole" ]]; then
-        rm -rf "$HOME/.config/mole" 2> /dev/null || true
+    if [[ -d "$HOME/.config/mole-ai" ]]; then
+        rm -rf "$HOME/.config/mole-ai" 2> /dev/null || true
     fi
     if [[ -d "$HOME/Library/Logs/mole" ]]; then
         rm -rf "$HOME/Library/Logs/mole" 2> /dev/null || true

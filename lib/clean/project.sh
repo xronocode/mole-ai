@@ -22,7 +22,7 @@ readonly PURGE_MAX_DEPTH_DEFAULT=6
 readonly DEFAULT_PURGE_SEARCH_PATHS=("${MOLE_PURGE_DEFAULT_SEARCH_PATHS[@]}")
 
 # Config file for custom purge paths.
-readonly PURGE_CONFIG_FILE="$HOME/.config/mole/purge_paths"
+readonly PURGE_CONFIG_FILE="${MOLE_CONFIG_DIR:-$HOME/.config/mole-ai}/purge_paths"
 
 # Resolved search paths.
 PURGE_SEARCH_PATHS=()
