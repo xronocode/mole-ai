@@ -39,7 +39,7 @@ _MOLE_AI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _fast_du_sk() {
     local dir="$1"
     local size
-    size=$(du -sk "$dir" 2>/dev/null | awk '{print $1}') || size="0"
+    size=$(du -sk "$dir" 2> /dev/null | awk '{print $1}') || size="0"
     echo "${size:-0}"
 }
 
@@ -47,16 +47,16 @@ _fast_du_sk_bg() {
     local dir="$1"
     local timeout_sec="${2:-15}"
     local tmp="/tmp/_mole_du_$$_${RANDOM}"
-    du -sk "$dir" > "$tmp" 2>/dev/null &
+    du -sk "$dir" > "$tmp" 2> /dev/null &
     local du_pid=$!
     local elapsed=0
     while true; do
-        if ! kill -0 "$du_pid" 2>/dev/null; then
+        if ! kill -0 "$du_pid" 2> /dev/null; then
             break
         fi
         if [[ $elapsed -ge $timeout_sec ]]; then
-            kill "$du_pid" 2>/dev/null
-            wait "$du_pid" 2>/dev/null
+            kill "$du_pid" 2> /dev/null
+            wait "$du_pid" 2> /dev/null
             rm -f "$tmp"
             echo ""
             return
@@ -64,8 +64,8 @@ _fast_du_sk_bg() {
         sleep 1
         elapsed=$((elapsed + 1))
     done
-    wait "$du_pid" 2>/dev/null || true
-    cat "$tmp" 2>/dev/null | awk '{print $1}'
+    wait "$du_pid" 2> /dev/null || true
+    cat "$tmp" 2> /dev/null | awk '{print $1}'
     rm -f "$tmp"
 }
 
@@ -73,13 +73,13 @@ _collect_section() {
     local title="$1"
     shift
     echo "=== $title ==="
-    "$@" 2>/dev/null || echo "(unavailable)"
+    "$@" 2> /dev/null || echo "(unavailable)"
     echo ""
 }
 
 _collect_disk_usage() {
     echo "All volumes:"
-    df -h 2>/dev/null | grep -E '^/dev/' || true
+    df -h 2> /dev/null | grep -E '^/dev/' || true
     echo ""
 
     echo "User directories:"
@@ -110,7 +110,7 @@ _collect_disk_usage() {
             fi
             [[ -z "$size" || "$size" == "0" ]] && continue
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-50s %s\n" "$dir" "$human"
         fi
     done
@@ -141,7 +141,7 @@ _collect_disk_usage() {
             fi
             [[ -z "$size" || "$size" == "0" ]] && continue
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-50s %s\n" "$dir" "$human"
         fi
     done
@@ -175,7 +175,7 @@ _collect_disk_usage() {
                 fi
                 [[ -z "$size" || "$size" == "0" ]] && continue
                 local human
-                human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+                human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
                 printf "  %-25s %8s  (%s)\n" "$label" "$human" "$expanded"
             fi
         done
@@ -184,24 +184,26 @@ _collect_disk_usage() {
 
 _collect_memory_info() {
     local total_bytes used_gb total_gb active wired compressed page_size
-    total_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
-    total_gb=$(LC_ALL=C awk "BEGIN {printf \"%.1f\", $total_bytes / (1024*1024*1024)}" 2>/dev/null || echo "?")
+    total_bytes=$(sysctl -n hw.memsize 2> /dev/null || echo "0")
+    total_gb=$(LC_ALL=C awk "BEGIN {printf \"%.1f\", $total_bytes / (1024*1024*1024)}" 2> /dev/null || echo "?")
 
     local vm_output
-    vm_output=$(vm_stat 2>/dev/null || echo "")
+    vm_output=$(vm_stat 2> /dev/null || echo "")
     page_size=4096
-    active=$(echo "$vm_output" | awk '/Pages active:/ {print $NF}' | tr -d '.\n' 2>/dev/null || echo "0")
-    wired=$(echo "$vm_output" | awk '/Pages wired down:/ {print $NF}' | tr -d '.\n' 2>/dev/null || echo "0")
-    compressed=$(echo "$vm_output" | awk '/Pages occupied by compressor:/ {print $NF}' | tr -d '.\n' 2>/dev/null || echo "0")
-    active=${active:-0}; wired=${wired:-0}; compressed=${compressed:-0}
-    local used_bytes=$(( (active + wired + compressed) * page_size ))
-    used_gb=$(LC_ALL=C awk "BEGIN {printf \"%.1f\", $used_bytes / (1024*1024*1024)}" 2>/dev/null || echo "?")
+    active=$(echo "$vm_output" | awk '/Pages active:/ {print $NF}' | tr -d '.\n' 2> /dev/null || echo "0")
+    wired=$(echo "$vm_output" | awk '/Pages wired down:/ {print $NF}' | tr -d '.\n' 2> /dev/null || echo "0")
+    compressed=$(echo "$vm_output" | awk '/Pages occupied by compressor:/ {print $NF}' | tr -d '.\n' 2> /dev/null || echo "0")
+    active=${active:-0}
+    wired=${wired:-0}
+    compressed=${compressed:-0}
+    local used_bytes=$(((active + wired + compressed) * page_size))
+    used_gb=$(LC_ALL=C awk "BEGIN {printf \"%.1f\", $used_bytes / (1024*1024*1024)}" 2> /dev/null || echo "?")
 
     local swap_used
-    swap_used=$(sysctl -n vm.swapusage 2>/dev/null | awk '/used/ {print $3}' | tr -d 'M' || echo "0")
+    swap_used=$(sysctl -n vm.swapusage 2> /dev/null | awk '/used/ {print $3}' | tr -d 'M' || echo "0")
 
     local pressure
-    pressure=$(memory_pressure 2>/dev/null | head -1 || echo "unknown")
+    pressure=$(memory_pressure 2> /dev/null | head -1 || echo "unknown")
 
     echo "Total: ${total_gb}GB"
     echo "Active+Wired+Compressed: ${used_gb}GB"
@@ -211,14 +213,14 @@ _collect_memory_info() {
 
 _collect_cpu_info() {
     local chip cores
-    chip=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "unknown")
-    cores=$(sysctl -n hw.ncpu 2>/dev/null || echo "?")
+    chip=$(sysctl -n machdep.cpu.brand_string 2> /dev/null || echo "unknown")
+    cores=$(sysctl -n hw.ncpu 2> /dev/null || echo "?")
 
     local load
-    load=$(uptime 2>/dev/null | sed 's/.*load averages: //' || echo "?")
+    load=$(uptime 2> /dev/null | sed 's/.*load averages: //' || echo "?")
 
     local top_procs
-    top_procs=$(ps aux 2>/dev/null | sort -k3 -rn | head -6 || echo "(unavailable)")
+    top_procs=$(ps aux 2> /dev/null | sort -k3 -rn | head -6 || echo "(unavailable)")
 
     echo "Chip: $chip"
     echo "Cores: $cores"
@@ -231,21 +233,21 @@ _collect_cpu_info() {
 
 _collect_uptime_info() {
     local boot_output boot_time
-    boot_output=$(sysctl -n kern.boottime 2>/dev/null || echo "")
-    boot_time=$(echo "$boot_output" | awk -F 'sec = |, usec' '{print $2}' 2>/dev/null || echo "")
+    boot_output=$(sysctl -n kern.boottime 2> /dev/null || echo "")
+    boot_time=$(echo "$boot_output" | awk -F 'sec = |, usec' '{print $2}' 2> /dev/null || echo "")
     if [[ -n "$boot_time" && "$boot_time" =~ ^[0-9]+$ ]]; then
         local now
         now=$(get_epoch_seconds)
         local uptime_sec=$((now - boot_time))
         local days=$((uptime_sec / 86400))
-        local hours=$(( (uptime_sec % 86400) / 3600 ))
+        local hours=$(((uptime_sec % 86400) / 3600))
         echo "Uptime: ${days}d ${hours}h"
     else
         echo "Uptime: unknown"
     fi
 
     local os_ver
-    os_ver=$(sw_vers -productVersion 2>/dev/null || echo "unknown")
+    os_ver=$(sw_vers -productVersion 2> /dev/null || echo "unknown")
     local arch
     arch=$(detect_architecture)
     echo "macOS: $os_ver ($arch)"
@@ -281,7 +283,7 @@ _collect_cleanable_items() {
                 local size
                 size=$(_fast_du_sk "$expanded")
                 local human
-                human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+                human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
                 printf "  %-40s %8s  (%s)\n" "$label" "$human" "$expanded"
             fi
         done
@@ -302,19 +304,19 @@ _collect_cleanable_items() {
             local size
             size=$(_fast_du_sk "$path")
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-40s %8s  (%s)\n" "$label" "$human" "$path"
         fi
     done
 
-    if command -v brew >/dev/null 2>&1; then
+    if command -v brew > /dev/null 2>&1; then
         local brew_cache
-        brew_cache=$(brew --cache 2>/dev/null || echo "")
+        brew_cache=$(brew --cache 2> /dev/null || echo "")
         if [[ -n "$brew_cache" && -d "$brew_cache" ]]; then
             local size
             size=$(_fast_du_sk "$brew_cache")
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-40s %8s  (%s)\n" "Homebrew cache" "$human" "$brew_cache"
         fi
     fi
@@ -330,11 +332,11 @@ _collect_cleanable_items() {
             local size
             size=$(_fast_du_sk "$artifact_dir")
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-40s %8s  (%s)\n" "$(basename "$artifact_dir")" "$human" "$artifact_dir"
             artifact_count=$((artifact_count + 1))
             [[ $artifact_count -ge 20 ]] && break
-        done < <(find "$scan_dir" -maxdepth 4 \( -name "node_modules" -o -name ".venv" -o -name "venv" -o -name "target" -o -name "build" -o -name ".gradle" -o -name "__pycache__" \) -type d -prune 2>/dev/null | head -20)
+        done < <(find "$scan_dir" -maxdepth 4 \( -name "node_modules" -o -name ".venv" -o -name "venv" -o -name "target" -o -name "build" -o -name ".gradle" -o -name "__pycache__" \) -type d -prune 2> /dev/null | head -20)
         [[ $artifact_count -ge 20 ]] && break
     done
     [[ $artifact_count -eq 0 ]] && echo "  (none found in common directories)"
@@ -344,9 +346,9 @@ _collect_trash() {
     local trash_size
     trash_size=$(_fast_du_sk "$HOME/.Trash")
     local human
-    human=$(bytes_to_human_kb "$trash_size" 2>/dev/null || echo "empty")
+    human=$(bytes_to_human_kb "$trash_size" 2> /dev/null || echo "empty")
     local count
-    count=$(find "$HOME/.Trash" -maxdepth 1 2>/dev/null | wc -l | tr -d ' \n' 2>/dev/null || echo "0")
+    count=$(find "$HOME/.Trash" -maxdepth 1 2> /dev/null | wc -l | tr -d ' \n' 2> /dev/null || echo "0")
     count="${count:-0}"
     [[ "$count" =~ ^[0-9]+$ ]] || count=0
     local items=$((count > 0 ? count - 1 : 0))
@@ -360,17 +362,17 @@ _collect_installer_files() {
     for ext in "${exts[@]}"; do
         while IFS= read -r -d '' f; do
             local size
-            size=$($STAT_BSD -f%z "$f" 2>/dev/null || echo "0")
+            size=$($STAT_BSD -f%z "$f" 2> /dev/null || echo "0")
             total=$((total + size))
             local human
-            human=$(bytes_to_human "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human "$size" 2> /dev/null || echo "?")
             found="${found}  $(basename "$f") ($human) — $f\n"
-        done < <(find "$HOME/Downloads" -maxdepth 2 -name "*.${ext}" -type f -print0 2>/dev/null | head -20)
+        done < <(find "$HOME/Downloads" -maxdepth 2 -name "*.${ext}" -type f -print0 2> /dev/null | head -20)
     done
     if [[ -n "$found" ]]; then
         echo -e "$found" | head -20
         local total_human
-        total_human=$(bytes_to_human "$total" 2>/dev/null || echo "?")
+        total_human=$(bytes_to_human "$total" 2> /dev/null || echo "?")
         echo "Total installer files: $total_human"
     else
         echo "No installer files found in Downloads"
@@ -379,11 +381,11 @@ _collect_installer_files() {
 
 _collect_network_info() {
     local connections
-    connections=$(netstat -an 2>/dev/null | awk '/ESTABLISHED/ {count++} END {print count+0}' || echo "?")
+    connections=$(netstat -an 2> /dev/null | awk '/ESTABLISHED/ {count++} END {print count+0}' || echo "?")
     echo "Active connections: $connections"
 
     local dns
-    dns=$(scutil --dns 2>/dev/null | grep "nameserver" | head -5 || echo "unknown")
+    dns=$(scutil --dns 2> /dev/null | grep "nameserver" | head -5 || echo "unknown")
     echo "DNS servers:"
     echo "$dns" | while IFS= read -r line; do
         echo "  $line"
@@ -391,9 +393,9 @@ _collect_network_info() {
 }
 
 _collect_battery_info() {
-    if command -v pmset >/dev/null 2>&1; then
+    if command -v pmset > /dev/null 2>&1; then
         local batt
-        batt=$(pmset -g batt 2>/dev/null || echo "")
+        batt=$(pmset -g batt 2> /dev/null || echo "")
         if [[ -n "$batt" ]]; then
             echo "$batt" | tail -1
         else

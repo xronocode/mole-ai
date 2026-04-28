@@ -152,7 +152,7 @@ else:
             if depth == 0:
                 print(text[start:i+1])
                 break
-" 2>/dev/null || true)
+" 2> /dev/null || true)
     fi
     echo "$json_block"
 }
@@ -181,7 +181,7 @@ try:
         print(f'{i+1}|{title}|{reason}|{risk}|{paths}|{est}|{cmd}')
 except Exception as e:
     print(f'ERROR|Parse error: {e}|||||', file=sys.stderr)
-" <<< "$json" 2>/dev/null
+" <<< "$json" 2> /dev/null
 }
 
 declare -a _PLAN_TITLES=()
@@ -326,7 +326,7 @@ _show_plan_menu() {
     done
 
     if [[ $vis_count -gt $_PLAN_PAGE_SIZE ]]; then
-        local pct=$(( (end * 100) / vis_count ))
+        local pct=$(((end * 100) / vis_count))
         printf '\r\033[2K  %sShowing %d-%d of %d (%d%%)%s\n' \
             "${GRAY}" "$((start + 1))" "$end" "$vis_count" "$pct" "${NC}"
     fi
@@ -369,7 +369,10 @@ _interactive_select() {
 
     while true; do
         vis_count=${#_PLAN_VISIBLE[@]}
-        [[ $vis_count -eq 0 ]] && { show_cursor; return 1; }
+        [[ $vis_count -eq 0 ]] && {
+            show_cursor
+            return 1
+        }
 
         _show_plan_menu "$current"
 
@@ -390,7 +393,7 @@ _interactive_select() {
                 if [[ $vis_idx -lt $((vis_count - 1)) ]]; then
                     vis_idx=$((vis_idx + 1))
                     current=${_PLAN_VISIBLE[$vis_idx]}
-                    local page_end=$(( _PLAN_SCROLL_OFFSET + _PLAN_PAGE_SIZE ))
+                    local page_end=$((_PLAN_SCROLL_OFFSET + _PLAN_PAGE_SIZE))
                     if [[ $vis_idx -ge $page_end ]]; then
                         _PLAN_SCROLL_OFFSET=$((vis_idx - _PLAN_PAGE_SIZE + 1))
                     fi

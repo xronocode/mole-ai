@@ -37,48 +37,48 @@ _MOLE_AI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   LINKS: M-AI-COLLECTOR-EXT
 # END_CONTRACT: _collect_docker_info
 _collect_docker_info() {
-    if ! command -v docker >/dev/null 2>&1; then
+    if ! command -v docker > /dev/null 2>&1; then
         echo "Docker: not installed"
         return
     fi
 
-    if ! docker info >/dev/null 2>&1; then
+    if ! docker info > /dev/null 2>&1; then
         echo "Docker: installed but not running"
         return
     fi
 
     echo "Docker disk usage:"
     local du_output
-    du_output=$(docker system df 2>/dev/null || echo "(unavailable)")
+    du_output=$(docker system df 2> /dev/null || echo "(unavailable)")
     echo "$du_output" | while IFS= read -r line; do
         echo "  $line"
     done
 
     echo ""
     echo "Docker images (by size):"
-    docker images --format '{{.Repository}}:{{.Tag}}\t{{.Size}}' 2>/dev/null \
-        | sort -t$'\t' -k2 -rh | head -15 | while IFS= read -r line; do
+    docker images --format '{{.Repository}}:{{.Tag}}\t{{.Size}}' 2> /dev/null |
+        sort -t$'\t' -k2 -rh | head -15 | while IFS= read -r line; do
         echo "  $line"
     done || echo "  (none)"
 
     echo ""
     echo "Docker containers:"
     local running stopped
-    running=$(docker ps -q 2>/dev/null | wc -l | tr -d ' \n' || echo "0")
-    stopped=$(docker ps -f "status=exited" -q 2>/dev/null | wc -l | tr -d ' \n' || echo "0")
+    running=$(docker ps -q 2> /dev/null | wc -l | tr -d ' \n' || echo "0")
+    stopped=$(docker ps -f "status=exited" -q 2> /dev/null | wc -l | tr -d ' \n' || echo "0")
     echo "  Running: $running, Stopped: $stopped"
 
     echo ""
     echo "Docker volumes (by size):"
-    docker volume ls -q 2>/dev/null | head -20 | while IFS= read -r vol; do
+    docker volume ls -q 2> /dev/null | head -20 | while IFS= read -r vol; do
         [[ -z "$vol" ]] && continue
         local vol_path
-        vol_path=$(docker volume inspect "$vol" --format '{{.Mountpoint}}' 2>/dev/null || echo "")
+        vol_path=$(docker volume inspect "$vol" --format '{{.Mountpoint}}' 2> /dev/null || echo "")
         if [[ -n "$vol_path" && -d "$vol_path" ]]; then
             local size
-            size=$(_fast_du_sk "$vol_path" 2>/dev/null || echo "0")
+            size=$(_fast_du_sk "$vol_path" 2> /dev/null || echo "0")
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-40s %s\n" "$vol" "$human"
         else
             printf "  %-40s %s\n" "$vol" "(inaccessible)"
@@ -94,22 +94,22 @@ _collect_docker_info() {
 #   LINKS: M-AI-COLLECTOR-EXT
 # END_CONTRACT: _collect_homebrew_info
 _collect_homebrew_info() {
-    if ! command -v brew >/dev/null 2>&1; then
+    if ! command -v brew > /dev/null 2>&1; then
         echo "Homebrew: not installed"
         return
     fi
 
     local brew_prefix
-    brew_prefix=$(brew --prefix 2>/dev/null || echo "/opt/homebrew")
+    brew_prefix=$(brew --prefix 2> /dev/null || echo "/opt/homebrew")
 
     echo "Homebrew cache:"
     local brew_cache
-    brew_cache=$(brew --cache 2>/dev/null || echo "")
+    brew_cache=$(brew --cache 2> /dev/null || echo "")
     if [[ -n "$brew_cache" && -d "$brew_cache" ]]; then
         local size
         size=$(_fast_du_sk "$brew_cache")
         local human
-        human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+        human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
         printf "  %-40s %s\n" "$brew_cache" "$human"
     else
         echo "  (cache not found)"
@@ -121,14 +121,14 @@ _collect_homebrew_info() {
         local cellar_size
         cellar_size=$(_fast_du_sk_bg "$brew_prefix/Cellar" 15)
         local cellar_human
-        cellar_human=$(bytes_to_human_kb "$cellar_size" 2>/dev/null || echo "?")
+        cellar_human=$(bytes_to_human_kb "$cellar_size" 2> /dev/null || echo "?")
         echo "  Total Cellar: $cellar_human"
 
-        du -sk "$brew_prefix/Cellar"/* 2>/dev/null | sort -rn | head -15 | while IFS=$'\t' read -r sz path; do
+        du -sk "$brew_prefix/Cellar"/* 2> /dev/null | sort -rn | head -15 | while IFS=$'\t' read -r sz path; do
             local pkg
             pkg=$(basename "$path")
             local human
-            human=$(bytes_to_human_kb "$sz" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$sz" 2> /dev/null || echo "?")
             printf "    %-30s %s\n" "$pkg" "$human"
         done
     else
@@ -138,7 +138,7 @@ _collect_homebrew_info() {
     echo ""
     echo "Outdated packages:"
     local outdated
-    outdated=$(brew outdated --quiet 2>/dev/null || echo "")
+    outdated=$(brew outdated --quiet 2> /dev/null || echo "")
     if [[ -n "$outdated" ]]; then
         local outdated_count
         outdated_count=$(echo "$outdated" | wc -l | tr -d ' \n')
@@ -188,21 +188,21 @@ _collect_xcode_info() {
             size=$(_fast_du_sk_bg "$path" 10)
             [[ -z "$size" ]] && size=0
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-35s %s\n" "$label" "$human"
             [[ "$size" =~ ^[0-9]+$ ]] && total_dev_size=$((total_dev_size + size))
         fi
     done
 
     local total_human
-    total_human=$(bytes_to_human_kb "$total_dev_size" 2>/dev/null || echo "?")
+    total_human=$(bytes_to_human_kb "$total_dev_size" 2> /dev/null || echo "?")
     echo ""
     echo "  Total Xcode data: $total_human"
 
     echo ""
     echo "iOS Simulators:"
-    if command -v xcrun >/dev/null 2>&1; then
-        xcrun simctl list devices 2>/dev/null | grep -E '(Booted|Shutdown)' | head -15 | while IFS= read -r line; do
+    if command -v xcrun > /dev/null 2>&1; then
+        xcrun simctl list devices 2> /dev/null | grep -E '(Booted|Shutdown)' | head -15 | while IFS= read -r line; do
             echo "  $line"
         done || echo "  (none)"
     else
@@ -212,11 +212,11 @@ _collect_xcode_info() {
     echo ""
     echo "Xcode Archives:"
     if [[ -d "$dev_dir/Xcode/Archives" ]]; then
-        find "$dev_dir/Xcode/Archives" -name "*.xcarchive" -maxdepth 3 -type d 2>/dev/null | while IFS= read -r archive; do
+        find "$dev_dir/Xcode/Archives" -name "*.xcarchive" -maxdepth 3 -type d 2> /dev/null | while IFS= read -r archive; do
             local size
             size=$(_fast_du_sk_bg "$archive" 10)
             local human
-            human=$(bytes_to_human_kb "$size" 2>/dev/null || echo "?")
+            human=$(bytes_to_human_kb "$size" 2> /dev/null || echo "?")
             printf "  %-45s %s\n" "$(basename "$archive")" "$human"
         done || echo "  (none)"
     else

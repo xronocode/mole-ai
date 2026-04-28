@@ -51,8 +51,8 @@ _step_fail() {
 }
 
 cleanup_advisor() {
-    stop_inline_spinner 2>/dev/null || true
-    show_cursor 2>/dev/null || true
+    stop_inline_spinner 2> /dev/null || true
+    show_cursor 2> /dev/null || true
     cleanup_temp_files
 }
 
@@ -162,7 +162,7 @@ _get_cache_timestamp() {
 _show_advisor_submenu() {
     local selected=1
     local configured=false
-    ai_config_is_configured 2>/dev/null && configured=true
+    ai_config_is_configured 2> /dev/null && configured=true
     local has_cache=false
     _has_cached_report && has_cache=true
 
@@ -224,7 +224,7 @@ _show_advisor_submenu() {
                         clear
                         ai_config_setup
                         configured=false
-                        ai_config_is_configured 2>/dev/null && configured=true
+                        ai_config_is_configured 2> /dev/null && configured=true
                         echo ""
                         echo -e "  ${GRAY}Press any key to continue...${NC}"
                         IFS= read -r -s -n1 -t 30 || true
@@ -329,7 +329,7 @@ _show_pipeline() {
         else
             line="${line}${GRAY}${ICON_EMPTY} ${s}${NC}"
         fi
-        [[ $i -lt $(( ${#stages[@]} - 1 )) ]] && line="${line} ${GRAY}──${NC} "
+        [[ $i -lt $((${#stages[@]} - 1)) ]] && line="${line} ${GRAY}──${NC} "
     done
 
     printf '\r\033[2K  %s\n' "$line" >&2
@@ -370,19 +370,19 @@ _stream_ai_with_progress() {
             sys_prompt=$(cat "$1")
             user_data=$(cat "$2")
             ai_client_stream_chat "$sys_prompt" "$user_data"
-        ' _ "$prompt_tmp" "$data_tmp" > "$resp_tmp" 2>/dev/null &
+        ' _ "$prompt_tmp" "$data_tmp" > "$resp_tmp" 2> /dev/null &
         local ai_pid=$!
 
         local spinner_chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
         local si=0
 
-        while kill -0 "$ai_pid" 2>/dev/null; do
+        while kill -0 "$ai_pid" 2> /dev/null; do
             local sc="${spinner_chars:$((si % 10)):1}"
             si=$((si + 1))
 
             local chars=0
             if [[ -f "$resp_tmp" ]]; then
-                chars=$(wc -c < "$resp_tmp" 2>/dev/null | tr -d '[:space:]' || echo "0")
+                chars=$(wc -c < "$resp_tmp" 2> /dev/null | tr -d '[:space:]' || echo "0")
             fi
 
             if [[ "$chars" -gt 0 ]]; then
@@ -403,11 +403,11 @@ _stream_ai_with_progress() {
         done
 
         local ai_exit=0
-        wait "$ai_pid" 2>/dev/null || ai_exit=$?
+        wait "$ai_pid" 2> /dev/null || ai_exit=$?
 
         local final_size=0
         if [[ -f "$resp_tmp" ]]; then
-            final_size=$(wc -c < "$resp_tmp" 2>/dev/null | tr -d '[:space:]' || echo "0")
+            final_size=$(wc -c < "$resp_tmp" 2> /dev/null | tr -d '[:space:]' || echo "0")
         fi
 
         if [[ $ai_exit -eq 0 && "$final_size" -gt 100 ]]; then
@@ -436,7 +436,7 @@ _collect_with_progress() {
     local collect_log="/tmp/mole_advisor_collect_log_$$.txt"
     rm -f "$data_tmp"
 
-    bash -c "source '$SCRIPT_DIR/lib/core/common.sh'; source '$SCRIPT_DIR/lib/ai/collector.sh'; collector_run_all" > "$data_tmp" 2>"$collect_log" &
+    bash -c "source '$SCRIPT_DIR/lib/core/common.sh'; source '$SCRIPT_DIR/lib/ai/collector.sh'; collector_run_all" > "$data_tmp" 2> "$collect_log" &
     local collect_pid=$!
 
     local spinner_chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -444,10 +444,10 @@ _collect_with_progress() {
 
     _show_pipeline "Collect" "${CYAN}⠋${NC} Starting scan..."
 
-    while kill -0 "$collect_pid" 2>/dev/null; do
+    while kill -0 "$collect_pid" 2> /dev/null; do
         local section_count=0
         if [[ -f "$data_tmp" ]]; then
-            section_count=$(grep -c '^=== ' "$data_tmp" 2>/dev/null | tr -d '[:space:]' || echo "0")
+            section_count=$(grep -c '^=== ' "$data_tmp" 2> /dev/null | tr -d '[:space:]' || echo "0")
             section_count="${section_count%%[!0-9]*}"
             [[ -z "$section_count" ]] && section_count=0
         fi
@@ -468,11 +468,11 @@ _collect_with_progress() {
         sleep 0.3
     done
 
-    wait "$collect_pid" 2>/dev/null || true
+    wait "$collect_pid" 2> /dev/null || true
 
     local section_count=0
     if [[ -f "$data_tmp" ]]; then
-        section_count=$(grep -c '^=== ' "$data_tmp" 2>/dev/null | tr -d '[:space:]' || echo "0")
+        section_count=$(grep -c '^=== ' "$data_tmp" 2> /dev/null | tr -d '[:space:]' || echo "0")
         section_count="${section_count%%[!0-9]*}"
         [[ -z "$section_count" ]] && section_count=0
     fi
@@ -631,10 +631,10 @@ main() {
         _step "Collecting system data..."
         local data_tmp="/tmp/mole_advisor_data_$$.txt"
         local collect_log="/tmp/mole_advisor_collect_log_$$.txt"
-        bash -c "source '$SCRIPT_DIR/lib/core/common.sh'; source '$SCRIPT_DIR/lib/ai/collector.sh'; collector_run_all" > "$data_tmp" 2>"$collect_log" || true
+        bash -c "source '$SCRIPT_DIR/lib/core/common.sh'; source '$SCRIPT_DIR/lib/ai/collector.sh'; collector_run_all" > "$data_tmp" 2> "$collect_log" || true
         system_data=$(cat "$data_tmp")
         local section_count
-        section_count=$(grep -c '^=== ' "$data_tmp" 2>/dev/null || echo "0")
+        section_count=$(grep -c '^=== ' "$data_tmp" 2> /dev/null || echo "0")
         _step_ok "System data collected" "(${#system_data} bytes, ${section_count} sections)"
         rm -f "$data_tmp" "$collect_log"
         echo ""
@@ -662,4 +662,7 @@ main() {
     exit 1
 }
 
-(set +e; main "$@")
+(
+    set +e
+    main "$@"
+)

@@ -42,7 +42,7 @@ _MOLE_AI_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _get_tool_specific_cmd() {
     local path="$1"
     case "$path" in
-        */.npm/_cacache|*/.npm)
+        */.npm/_cacache | */.npm)
             echo "npm cache clean --force 2>/dev/null"
             ;;
         */Caches/Homebrew)
@@ -68,7 +68,7 @@ _execute_tool_cmd() {
     local cmd="$1"
     local path="$2"
     local tool_exit=0
-    eval "$cmd" >/dev/null 2>&1 || tool_exit=$?
+    eval "$cmd" > /dev/null 2>&1 || tool_exit=$?
     if [[ $tool_exit -eq 0 ]]; then
         echo -e "    ${GREEN}${ICON_SUCCESS}${NC} Cleaned via tool command: ${cmd%% *}"
         return 0
@@ -92,7 +92,7 @@ _format_skip_reason() {
         11) echo "auth required" ;;
         12) echo "read-only filesystem" ;;
         13) echo "permission denied" ;;
-        *)  echo "error" ;;
+        *) echo "error" ;;
     esac
 }
 
@@ -108,7 +108,7 @@ _expand_glob_paths() {
     if [[ "$pattern" == *"/*" ]]; then
         local base="${pattern%/*}"
         if [[ -d "$base" ]]; then
-            find "$base" -maxdepth 1 -mindepth 1 2>/dev/null || true
+            find "$base" -maxdepth 1 -mindepth 1 2> /dev/null || true
             return
         fi
     fi
@@ -156,7 +156,7 @@ _execute_plan() {
                 local base="${p%/*}"
                 if [[ -d "$base" ]]; then
                     local size_kb=0
-                    size_kb=$(get_path_size_kb "$base" 2>/dev/null || echo "0")
+                    size_kb=$(get_path_size_kb "$base" 2> /dev/null || echo "0")
 
                     if [[ -n "$tool_cmd" ]]; then
                         if _execute_tool_cmd "$tool_cmd" "$base"; then
@@ -167,7 +167,7 @@ _execute_plan() {
                     fi
 
                     local items
-                    items=$(find "$base" -maxdepth 1 -mindepth 1 2>/dev/null || true)
+                    items=$(find "$base" -maxdepth 1 -mindepth 1 2> /dev/null || true)
                     local item_count=0
                     local item_failed=0
                     while IFS= read -r target; do
@@ -187,7 +187,7 @@ _execute_plan() {
                     done <<< "$items"
                     if [[ $item_count -gt 0 ]]; then
                         local human
-                        human=$(bytes_to_human "$((size_kb * 1024))" 2>/dev/null || echo "?")
+                        human=$(bytes_to_human "$((size_kb * 1024))" 2> /dev/null || echo "?")
                         echo -e "    ${GREEN}${ICON_SUCCESS}${NC} Cleared ${item_count} items from ${base} (${human})"
                         total_recovered=$((total_recovered + size_kb))
                         executed=$((executed + 1))
@@ -201,7 +201,7 @@ _execute_plan() {
                     if [[ -n "$tool_cmd" ]]; then
                         if _execute_tool_cmd "$tool_cmd" "$p"; then
                             local size_kb=0
-                            size_kb=$(get_path_size_kb "$p" 2>/dev/null || echo "0")
+                            size_kb=$(get_path_size_kb "$p" 2> /dev/null || echo "0")
                             total_recovered=$((total_recovered + size_kb))
                             executed=$((executed + 1))
                             continue
@@ -209,12 +209,12 @@ _execute_plan() {
                     fi
 
                     local size_kb=0
-                    size_kb=$(get_path_size_kb "$p" 2>/dev/null || echo "0")
+                    size_kb=$(get_path_size_kb "$p" 2> /dev/null || echo "0")
                     local rm_rc=0
                     safe_remove "$p" "true" || rm_rc=$?
                     if [[ $rm_rc -eq 0 ]]; then
                         local human
-                        human=$(bytes_to_human "$((size_kb * 1024))" 2>/dev/null || echo "?")
+                        human=$(bytes_to_human "$((size_kb * 1024))" 2> /dev/null || echo "?")
                         echo -e "    ${GREEN}${ICON_SUCCESS}${NC} Removed: ${p} (${human})"
                         total_recovered=$((total_recovered + size_kb))
                         executed=$((executed + 1))
@@ -234,7 +234,7 @@ _execute_plan() {
 
     echo ""
     local total_human
-    total_human=$(bytes_to_human_kb "$total_recovered" 2>/dev/null || echo "?")
+    total_human=$(bytes_to_human_kb "$total_recovered" 2> /dev/null || echo "?")
     echo -e "  ${GREEN}${ICON_SUCCESS}${NC} Done: ${executed} items removed, ${total_human} recovered"
     [[ $failed -gt 0 ]] && echo -e "  ${YELLOW}${ICON_WARNING}${NC} ${failed} items skipped"
     [[ $skipped_perm -gt 0 ]] && echo -e "  ${YELLOW}${ICON_WARNING}${NC} ${skipped_perm} items need elevated permissions or tool-specific cleanup"

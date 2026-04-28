@@ -37,7 +37,7 @@ _json_escape_string() {
     printf '%s' "$1" | python3 -c '
 import sys, json
 sys.stdout.write(json.dumps(sys.stdin.read())[1:-1])
-' 2>/dev/null || {
+' 2> /dev/null || {
         local str="$1"
         str="${str//\\/\\\\}"
         str="${str//\"/\\\"}"
@@ -97,7 +97,8 @@ ai_client_chat() {
     fi
 
     local request_body
-    request_body=$(cat <<EOF
+    request_body=$(
+        cat << EOF
 {
   "model": "$(_json_escape_string "$model")",
   "messages": $messages,
@@ -105,7 +106,7 @@ ai_client_chat() {
   "temperature": $temperature
 }
 EOF
-)
+    )
 
     curl_args+=(-d "$request_body")
     curl_args+=("$url")
@@ -142,7 +143,7 @@ try:
         print(reasoning)
 except Exception:
     pass
-" 2>/dev/null || true)
+" 2> /dev/null || true)
 
     if [[ -z "$content" ]]; then
         echo "ERROR: Empty response from model" >&2
@@ -182,7 +183,8 @@ ai_client_stream_chat() {
     fi
 
     local request_body
-    request_body=$(cat <<EOF
+    request_body=$(
+        cat << EOF
 {
   "model": "$(_json_escape_string "$model")",
   "messages": $messages,
@@ -197,7 +199,7 @@ EOF
     curl_args+=("$url")
 
     local stream_tmp="/tmp/_mole_stream_reason_$$_${RANDOM}"
-    curl "${curl_args[@]}" 2>/dev/null | python3 -u -c "
+    curl "${curl_args[@]}" 2> /dev/null | python3 -u -c "
 import sys, json
 for line in sys.stdin:
     line = line.strip()
@@ -218,7 +220,7 @@ for line in sys.stdin:
                 sys.stdout.flush()
         except (json.JSONDecodeError, KeyError, IndexError):
             pass
-" 2>/dev/null || {
+" 2> /dev/null || {
         echo "ERROR: Stream connection failed" >&2
         return 1
     }
@@ -244,12 +246,12 @@ ai_client_test() {
     curl_args+=("$url")
 
     local response
-    response=$(curl "${curl_args[@]}" 2>/dev/null) && return 0
+    response=$(curl "${curl_args[@]}" 2> /dev/null) && return 0
 
     url="${endpoint%/}/chat/completions"
     local test_body='{"model":"'"$(_json_escape_string "$model")"'","messages":[{"role":"user","content":"hi"}],"max_tokens":5}'
     curl_args+=(-H "Content-Type: application/json" -d "$test_body")
-    response=$(curl -sS --connect-timeout 5 --max-time 15 "${curl_args[@]}" 2>/dev/null) && return 0
+    response=$(curl -sS --connect-timeout 5 --max-time 15 "${curl_args[@]}" 2> /dev/null) && return 0
 
     return 1
 }

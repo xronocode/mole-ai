@@ -625,7 +625,7 @@ install_files() {
     fi
 
     if [[ -x "$INSTALL_DIR/mole-ai" ]]; then
-        maybe_sudo ln -sf "$INSTALL_DIR/mole-ai" "$INSTALL_DIR/mo" 2>/dev/null || true
+        maybe_sudo ln -sf "$INSTALL_DIR/mole-ai" "$INSTALL_DIR/mo" 2> /dev/null || true
         log_success "Installed mo alias → mole-ai"
     fi
 

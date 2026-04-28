@@ -50,7 +50,7 @@ _ai_config_get_raw() {
         return 1
     fi
     local value
-    value=$(grep -E "^${key}=" "$MOLE_AI_CONFIG_FILE" 2>/dev/null | head -1 | sed "s/^${key}=//" || true)
+    value=$(grep -E "^${key}=" "$MOLE_AI_CONFIG_FILE" 2> /dev/null | head -1 | sed "s/^${key}=//" || true)
     [[ -n "$value" ]] && echo "$value" && return 0
     return 1
 }
@@ -68,7 +68,7 @@ ai_config_set() {
     local value="$2"
     ensure_user_dir "$(dirname "$MOLE_AI_CONFIG_FILE")"
     ensure_user_file "$MOLE_AI_CONFIG_FILE"
-    if _ai_config_get_raw "$key" >/dev/null 2>&1; then
+    if _ai_config_get_raw "$key" > /dev/null 2>&1; then
         local tmp
         tmp=$(mktemp_file)
         sed "s|^${key}=.*|${key}=${value}|" "$MOLE_AI_CONFIG_FILE" > "$tmp" || true
