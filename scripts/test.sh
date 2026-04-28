@@ -265,7 +265,7 @@ else
         XDG_CACHE_HOME="$install_test_home/.cache" \
         MO_NO_OPLOG=1 \
         ./install.sh --prefix /tmp/mole-test > /dev/null 2>&1; then
-        if [[ -f "/tmp/mole-test/mole" ]]; then
+        if [[ -f "/tmp/mole-test/mole-ai" ]]; then
             printf "${GREEN}${ICON_SUCCESS} Installation test passed${NC}\n"
         else
             printf "${RED}${ICON_ERROR} Installation test failed${NC}\n"
