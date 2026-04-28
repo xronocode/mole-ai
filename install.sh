@@ -88,7 +88,7 @@ safe_rm() {
 
 # Install defaults
 INSTALL_DIR="/usr/local/bin"
-CONFIG_DIR="$HOME/.config/mole"
+CONFIG_DIR="$HOME/.config/mole-ai"
 SOURCE_DIR=""
 
 ACTION="install"
@@ -158,12 +158,12 @@ resolve_source_dir() {
     if [[ "$branch" != "main" && "$branch" != "dev" ]]; then
         branch="$(normalize_release_tag "$branch")"
     fi
-    local url="https://github.com/tw93/mole/archive/refs/heads/main.tar.gz"
+    local url="https://github.com/xronocode/mole-ai/archive/refs/heads/main.tar.gz"
 
     if [[ "$branch" == "dev" ]]; then
-        url="https://github.com/tw93/mole/archive/refs/heads/dev.tar.gz"
+        url="https://github.com/xronocode/mole-ai/archive/refs/heads/dev.tar.gz"
     elif [[ "$branch" != "main" ]]; then
-        url="https://github.com/tw93/mole/archive/refs/tags/${branch}.tar.gz"
+        url="https://github.com/xronocode/mole-ai/archive/refs/tags/${branch}.tar.gz"
     fi
 
     start_line_spinner "Fetching Mole source, ${branch}..."
@@ -198,7 +198,7 @@ resolve_source_dir() {
             git_args+=("--branch" "$branch")
         fi
 
-        if git clone "${git_args[@]}" https://github.com/tw93/mole.git "$tmp/mole" > /dev/null 2>&1; then
+        if git clone "${git_args[@]}" https://github.com/xronocode/mole-ai.git "$tmp/mole" > /dev/null 2>&1; then
             stop_line_spinner
             SOURCE_DIR="$tmp/mole"
             return 0
@@ -225,7 +225,7 @@ get_source_commit_hash() {
     fi
     # Fallback to GitHub API
     curl -fsSL --connect-timeout 3 \
-        "https://api.github.com/repos/tw93/mole/commits/main" 2> /dev/null |
+        "https://api.github.com/repos/xronocode/mole-ai/commits/main" 2> /dev/null |
         sed -n 's/.*"sha"[[:space:]]*:[[:space:]]*"\([a-f0-9]\{7\}\).*/\1/p' | head -1
 }
 
@@ -235,7 +235,7 @@ get_latest_release_tag() {
         return 1
     fi
     tag=$(curl -fsSL --connect-timeout 2 --max-time 3 \
-        "https://api.github.com/repos/tw93/mole/releases/latest" 2> /dev/null |
+        "https://api.github.com/repos/xronocode/mole-ai/releases/latest" 2> /dev/null |
         sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)
     if [[ -z "$tag" ]]; then
         return 1
@@ -247,7 +247,7 @@ get_latest_release_tag_from_git() {
     if ! command -v git > /dev/null 2>&1; then
         return 1
     fi
-    git ls-remote --tags --refs https://github.com/tw93/mole.git 2> /dev/null |
+    git ls-remote --tags --refs https://github.com/xronocode/mole-ai.git 2> /dev/null |
         awk -F/ '{print $NF}' |
         grep -E '^V[0-9]' |
         sort -V |
@@ -266,7 +266,7 @@ normalize_release_tag() {
 }
 
 get_installed_version() {
-    local binary="$INSTALL_DIR/mole"
+    local binary="$INSTALL_DIR/mole-ai"
     if [[ -x "$binary" ]]; then
         local version
         version=$("$binary" --version 2> /dev/null | awk '/Mole version/ {print $NF; exit}')
@@ -425,7 +425,7 @@ check_requirements() {
         local is_homebrew_binary=false
 
         if [[ -n "$mole_path" && -L "$mole_path" ]]; then
-            if readlink "$mole_path" | grep -q "Cellar/mole"; then
+            if readlink "$mole_path" | grep -q "Cellar/mole-ai"; then
                 is_homebrew_binary=true
             fi
         fi
@@ -547,7 +547,7 @@ download_binary() {
         fi
         return 1
     fi
-    local url="https://github.com/tw93/mole/releases/download/V${version}/${binary_name}-darwin-${arch_suffix}"
+    local url="https://github.com/xronocode/mole-ai/releases/download/V${version}/${binary_name}-darwin-${arch_suffix}"
 
     # Skip preflight network checks to avoid false negatives.
 
@@ -569,7 +569,7 @@ download_binary() {
     local fallback_tag
     fallback_tag=$(get_latest_release_tag 2> /dev/null || true)
     if [[ -n "$fallback_tag" && "$fallback_tag" != "V${version}" ]]; then
-        local fallback_url="https://github.com/tw93/mole/releases/download/${fallback_tag}/${binary_name}-darwin-${arch_suffix}"
+        local fallback_url="https://github.com/xronocode/mole-ai/releases/download/${fallback_tag}/${binary_name}-darwin-${arch_suffix}"
         if [[ -t 1 ]]; then
             start_line_spinner "Retrying ${binary_name} from ${fallback_tag}..."
         else
@@ -613,26 +613,20 @@ install_files() {
             fi
 
             # Atomic update: copy to temporary name first, then move
-            maybe_sudo cp "$SOURCE_DIR/mole" "$INSTALL_DIR/mole.new"
-            maybe_sudo chmod +x "$INSTALL_DIR/mole.new"
-            maybe_sudo mv -f "$INSTALL_DIR/mole.new" "$INSTALL_DIR/mole"
+            maybe_sudo cp "$SOURCE_DIR/mole" "$INSTALL_DIR/mole-ai.new"
+            maybe_sudo chmod +x "$INSTALL_DIR/mole-ai.new"
+            maybe_sudo mv -f "$INSTALL_DIR/mole-ai.new" "$INSTALL_DIR/mole-ai"
 
-            log_success "Installed mole to $INSTALL_DIR"
+            log_success "Installed mole-ai to $INSTALL_DIR"
         fi
     else
-        log_error "mole executable not found in ${SOURCE_DIR:-unknown}"
+        log_error "mole-ai executable not found in ${SOURCE_DIR:-unknown}"
         exit 1
     fi
 
-    if [[ -f "$SOURCE_DIR/mo" ]]; then
-        if [[ "$source_dir_abs" == "$install_dir_abs" ]]; then
-            log_success "mo alias already present"
-        else
-            maybe_sudo cp "$SOURCE_DIR/mo" "$INSTALL_DIR/mo.new"
-            maybe_sudo chmod +x "$INSTALL_DIR/mo.new"
-            maybe_sudo mv -f "$INSTALL_DIR/mo.new" "$INSTALL_DIR/mo"
-            log_success "Installed mo alias"
-        fi
+    if [[ -x "$INSTALL_DIR/mole-ai" ]]; then
+        maybe_sudo ln -sf "$INSTALL_DIR/mole-ai" "$INSTALL_DIR/mo" 2>/dev/null || true
+        log_success "Installed mo alias → mole-ai"
     fi
 
     if [[ -d "$SOURCE_DIR/bin" ]]; then
@@ -681,7 +675,7 @@ install_files() {
     if [[ "$source_dir_abs" != "$install_dir_abs" ]]; then
         # Use absolute /usr/bin/sed (always BSD on macOS) so PATH-shadowed
         # GNU sed from Homebrew gnu-sed does not break the -i '' syntax.
-        maybe_sudo /usr/bin/sed -i '' "s|SCRIPT_DIR=.*|SCRIPT_DIR=\"$CONFIG_DIR\"|" "$INSTALL_DIR/mole"
+        maybe_sudo /usr/bin/sed -i '' "s|SCRIPT_DIR=.*|SCRIPT_DIR=\"$CONFIG_DIR\"|" "$INSTALL_DIR/mole-ai"
     fi
 
     if ! download_binary "analyze"; then
@@ -695,9 +689,9 @@ install_files() {
 # Verification and PATH hint
 verify_installation() {
 
-    if [[ -x "$INSTALL_DIR/mole" ]] && [[ -f "$CONFIG_DIR/lib/core/common.sh" ]]; then
+    if [[ -x "$INSTALL_DIR/mole-ai" ]] && [[ -f "$CONFIG_DIR/lib/core/common.sh" ]]; then
 
-        if "$INSTALL_DIR/mole" --help > /dev/null 2>&1; then
+        if "$INSTALL_DIR/mole-ai" --help > /dev/null 2>&1; then
             return 0
         else
             log_warning "Mole command installed but may not be working properly"
@@ -763,7 +757,7 @@ print_usage_summary() {
         echo "  $INSTALL_DIR/mo optimize                  # Check and maintain system"
         echo "  $INSTALL_DIR/mo analyze                   # Explore disk usage"
         echo "  $INSTALL_DIR/mo status                    # Monitor system health"
-        echo "  $INSTALL_DIR/mo touchid                   # Configure Touch ID for sudo"
+        echo "  $INSTALL_DIR/mo advisor                   # AI-powered system analysis"
         echo "  $INSTALL_DIR/mo update                    # Update to latest version"
         echo "  $INSTALL_DIR/mo --help                    # Show all commands"
     fi
